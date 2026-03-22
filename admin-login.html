@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SORSE Admin — Secure Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .bg-login { background: linear-gradient(135deg, #0a1628 0%, #1a3a6b 60%, #0a0f1e 100%); }
+        .shake { animation: shake 0.4s ease; }
+        @keyframes shake {
+            0%,100%{transform:translateX(0)}
+            20%{transform:translateX(-8px)}
+            40%{transform:translateX(8px)}
+            60%{transform:translateX(-5px)}
+            80%{transform:translateX(5px)}
+        }
+    </style>
+</head>
+<body class="bg-login min-h-screen flex items-center justify-center px-4">
+
+    <div class="w-full max-w-md">
+        <!-- Logo -->
+        <div class="text-center mb-8">
+            <img src="sorse_logo_3_enhanced.png" alt="SORSE" class="h-14 mx-auto mb-4 brightness-0 invert opacity-90">
+            <p class="text-slate-400 text-sm">Admin Portal — Authorized Access Only</p>
+        </div>
+
+        <!-- Login Card -->
+        <div id="loginCard" class="bg-white/5 backdrop-blur border border-white/10 rounded-2xl p-8 shadow-2xl">
+            <h2 class="text-white font-black text-xl mb-6 text-center">Sign In</h2>
+
+            <!-- Error message -->
+            <div id="errorMsg" class="hidden bg-red-500/20 border border-red-500/40 text-red-300 text-sm rounded-xl px-4 py-3 mb-5"></div>
+
+            <!-- Lockout message -->
+            <div id="lockoutMsg" class="hidden bg-orange-500/20 border border-orange-500/40 text-orange-300 text-sm rounded-xl px-4 py-3 mb-5 text-center">
+                🔒 Too many failed attempts.<br>
+                <span id="lockoutTimer" class="font-bold"></span>
+            </div>
+
+            <form id="loginForm" onsubmit="handleLogin(event)" autocomplete="off">
+                <div class="mb-4">
+                    <label class="block text-slate-300 text-sm font-semibold mb-2">Username</label>
+                    <input id="username" type="text" autocomplete="off" spellcheck="false"
+                        class="w-full bg-white/10 border border-white/20 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-400 placeholder-slate-500"
+                        placeholder="Enter username">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-slate-300 text-sm font-semibold mb-2">Password</label>
+                    <div class="relative">
+                        <input id="password" type="password" autocomplete="new-password"
+                            class="w-full bg-white/10 border border-white/20 text-white rounded-xl px-4 py-3 pr-12 focus:outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-400 placeholder-slate-500"
+                            placeholder="Enter password">
+                        <button type="button" onclick="togglePw()" class="absolute right-3 top-3 text-slate-400 hover:text-white">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <button id="submitBtn" type="submit"
+                    class="w-full bg-orange-500 hover:bg-orange-600 text-white font-black py-3 rounded-xl transition-colors text-sm uppercase tracking-wider">
+                    Sign In
+                </button>
+            </form>
+
+            <p id="attemptInfo" class="text-center text-slate-500 text-xs mt-4"></p>
+        </div>
+
+        <p class="text-center text-slate-600 text-xs mt-6">SORSE Courier · sorse.ca · Secure Admin Access</p>
+    </div>
+
+<script>
+    // Auth config — password stored as SHA-256 hash only, never in plaintext
+    const _cfg = {
+        u: 'THVjYQ==',
+        h: '528386dd148ccd4b7a5ad27e08555bbc0bd2c2ac89a03bd46426129781a717c9',
+        maxAttempts: 5,
+        lockoutMs: 15 * 60 * 1000,
+        sessionMs: 2 * 60 * 60 * 1000
+    };
+
+    // Session check — redirect if already authenticated
+    (function() {
+        const ok = sessionStorage.getItem('_sa');
+        const t = parseInt(sessionStorage.getItem('_st') || '0');
+        if (ok === '1' && Date.now() - t < _cfg.sessionMs) {
+            window.location.href = 'admin-dashboard.html';
+        }
+    })();
+
+    let lockoutInterval = null;
+
+    function getLockout() {
+        try { return JSON.parse(localStorage.getItem('_sl') || '{"attempts":0,"until":0}'); }
+        catch(e) { return {attempts:0,until:0}; }
+    }
+    function setLockout(d) { localStorage.setItem('_sl', JSON.stringify(d)); }
+
+    function checkLockout() {
+        const d = getLockout();
+        if (d.until && Date.now() < d.until) { showLockout(d.until); return true; }
+        if (d.until && Date.now() >= d.until) { setLockout({attempts:0,until:0}); }
+        return false;
+    }
+
+    function showLockout(until) {
+        document.getElementById('loginForm').style.opacity = '0.3';
+        document.getElementById('loginForm').style.pointerEvents = 'none';
+        document.getElementById('lockoutMsg').classList.remove('hidden');
+        document.getElementById('errorMsg').classList.add('hidden');
+        if (lockoutInterval) clearInterval(lockoutInterval);
+        lockoutInterval = setInterval(() => {
+            const rem = Math.max(0, until - Date.now());
+            const m = Math.floor(rem / 60000), s = Math.floor((rem % 60000) / 1000);
+            document.getElementById('lockoutTimer').textContent = `Try again in ${m}m ${s}s`;
+            if (rem <= 0) {
+                clearInterval(lockoutInterval);
+                setLockout({attempts:0,until:0});
+                document.getElementById('loginForm').style.opacity = '1';
+                document.getElementById('loginForm').style.pointerEvents = '';
+                document.getElementById('lockoutMsg').classList.add('hidden');
+                document.getElementById('attemptInfo').textContent = '';
+            }
+        }, 1000);
+    }
+
+    async function sha256(str) {
+        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+    }
+
+    async function handleLogin(e) {
+        e.preventDefault();
+        if (checkLockout()) return;
+
+        const u = document.getElementById('username').value.trim();
+        const p = document.getElementById('password').value;
+        const btn = document.getElementById('submitBtn');
+
+        btn.textContent = 'Verifying...';
+        btn.disabled = true;
+
+        // Timing delay to prevent brute-force timing attacks
+        await new Promise(r => setTimeout(r, 500 + Math.random() * 400));
+
+        const ph = await sha256(p);
+        const validUser = btoa(u) === _cfg.u;
+        const validPass = ph === _cfg.h;
+
+        if (validUser && validPass) {
+            setLockout({attempts:0,until:0});
+            sessionStorage.setItem('_sa', '1');
+            sessionStorage.setItem('_st', Date.now().toString());
+            sessionStorage.setItem('_su', u);
+            btn.textContent = '✓ Authenticated';
+            btn.classList.replace('bg-orange-500','bg-green-500');
+            setTimeout(() => { window.location.href = 'admin-dashboard.html'; }, 500);
+        } else {
+            const d = getLockout();
+            d.attempts = (d.attempts || 0) + 1;
+            const rem = _cfg.maxAttempts - d.attempts;
+            if (d.attempts >= _cfg.maxAttempts) {
+                d.until = Date.now() + _cfg.lockoutMs;
+                setLockout(d);
+                showLockout(d.until);
+            } else {
+                setLockout(d);
+                const card = document.getElementById('loginCard');
+                card.classList.add('shake');
+                setTimeout(() => card.classList.remove('shake'), 500);
+                const err = document.getElementById('errorMsg');
+                err.textContent = 'Invalid username or password.';
+                err.classList.remove('hidden');
+                document.getElementById('attemptInfo').textContent =
+                    `${rem} attempt${rem !== 1 ? 's' : ''} remaining before 15-minute lockout`;
+                document.getElementById('password').value = '';
+                btn.textContent = 'Sign In';
+                btn.disabled = false;
+            }
+        }
+    }
+
+    function togglePw() {
+        const pw = document.getElementById('password');
+        pw.type = pw.type === 'password' ? 'text' : 'password';
+    }
+
+    window.addEventListener('load', () => { checkLockout(); });
+</script>
+</body>
+</html>

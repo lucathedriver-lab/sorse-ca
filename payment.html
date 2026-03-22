@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SORSE Pricing & Payments | Same-Day Courier | Bitcoin & Traditional</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .sorse-blue { color: #3B82F6; }
+        .sorse-orange { color: #F97316; }
+        .bg-sorse-gradient { background: linear-gradient(135deg, #3B82F6, #F97316); }
+        .hero-gradient { background: linear-gradient(135deg, #EFF6FF, #FFF7ED); }
+        .bitcoin-gradient { background: linear-gradient(135deg, #F7931A, #FFD700); }
+        .payment-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .payment-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center">
+                    <img src="sorse_logo_3_enhanced.png" alt="SORSE Logo" class="h-12 w-auto">
+                </div>
+                <nav class="hidden md:flex space-x-8">
+                    <a href="index.html" class="text-gray-700 hover:text-blue-600">Home</a>
+                    <a href="payment.html" class="text-blue-600 font-medium">Payments</a>
+                    <a href="admin-login.html" class="text-gray-700 hover:text-blue-600">Admin</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero-gradient py-16 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-4xl mx-auto text-center">
+            <h1 class="text-5xl font-bold mb-6">
+                <span class="sorse-blue">SOR</span><span class="sorse-orange">SE</span> Payment Options
+            </h1>
+            <p class="text-xl text-gray-600 mb-8">
+Flexible payment solutions for businesses, restaurants, and courier partners across the GTA. We accept traditional payments and proudly support Bitcoin for the future of commerce.
+            </p>
+            <div class="bg-orange-100 border border-orange-200 rounded-lg p-4 inline-block">
+                <p class="text-orange-800 font-medium">
+                    🚀 <strong>Bitcoin Bonus:</strong> Get 5% discount on all payments made with Bitcoin!
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Payment Methods -->
+    <section class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold text-center mb-12">Choose Your Payment Method</h2>
+            
+            <div class="grid md:grid-cols-2 gap-8 mb-12">
+                <!-- Traditional Payments -->
+                <div class="payment-card bg-white rounded-xl shadow-lg p-8 border">
+                    <div class="text-center mb-6">
+                        <div class="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-2">Traditional Payments</h3>
+                        <p class="text-gray-600">Credit cards, debit cards, and bank transfers</p>
+                    </div>
+                    
+                    <div class="space-y-4 mb-6">
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span>Visa, Mastercard, American Express</span>
+                        </div>
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span>Interac Debit (Canada)</span>
+                        </div>
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span>Bank Transfer (EFT)</span>
+                        </div>
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span>PayPal Business</span>
+                        </div>
+                    </div>
+                    
+                    <button onclick="showTraditionalPayment()" class="w-full bg-sorse-gradient text-white py-3 rounded-lg hover:opacity-90 transition-opacity">
+                        Pay with Card/Bank
+                    </button>
+                </div>
+
+                <!-- Bitcoin Payments -->
+                <div class="payment-card bg-gradient-to-br from-orange-50 to-yellow-50 rounded-xl shadow-lg p-8 border-2 border-orange-200">
+                    <div class="text-center mb-6">
+                        <div class="bitcoin-gradient w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M23.638 14.904c-1.602 6.43-8.113 10.34-14.542 8.736C2.67 22.05-1.244 15.525.362 9.105 1.962 2.67 8.475-1.243 14.9.358c6.43 1.605 10.342 8.115 8.738 14.546z"/>
+                                <path fill="#fff" d="M17.415 11.85c.266-1.78-.09-2.74-.673-3.38l.673-2.697-1.644-.41-.656 2.63c-.432-.108-.875-.21-1.315-.31l.66-2.648-1.644-.41-.673 2.696c-.358-.082-.71-.162-1.05-.248l.002-.009-2.268-.566-.437 1.755s1.212.278 1.187.295c.661.165.78.602.76.949l-.76 3.047c.046.012.105.029.171.056l-.172-.043-.765 3.067c-.058.144-.205.36-.537.278.012.017-1.187-.296-1.187-.296l-.815 1.881 2.14.533c.398.1.788.205 1.172.302l-.68 2.728 1.644.41.673-2.699c.448.122.882.234 1.307.34l-.671 2.684 1.644.41.68-2.724c2.8.529 4.905.315 5.794-2.211.717-2.034-.035-3.21-1.506-3.976 1.071-.247 1.878-952 2.097-2.407zm-3.75 5.259c-.508 2.04-3.94 937-5.055.234-1.114-.703-4.547-1.743-4.04-3.783.508-2.04 3.94-.937 5.055-.234 1.114.704 4.547 1.743 4.04 3.783zm.508-5.283c-.463 1.86-3.332.915-4.267.683-.935-.232-3.804-1.177-3.34-3.037.462-1.86 3.332-.915 4.267-.683.935.232 3.804 1.177 3.34 3.037z"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-2">Bitcoin Payments</h3>
+                        <p class="text-gray-600">The future of digital payments</p>
+                        <div class="bg-orange-200 text-orange-800 px-3 py-1 rounded-full text-sm font-medium mt-2 inline-block">
+                            5% DISCOUNT
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-4 mb-6">
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span>Instant global transactions</span>
+                        </div>
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span>Lower transaction fees</span>
+                        </div>
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span>Enhanced security & privacy</span>
+                        </div>
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span>No chargebacks or reversals</span>
+                        </div>
+                    </div>
+                    
+                    <button onclick="showBitcoinPayment()" class="w-full bitcoin-gradient text-white py-3 rounded-lg hover:opacity-90 transition-opacity font-medium">
+                        Pay with Bitcoin (5% OFF)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Payment Types -->
+    <section class="py-16 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold text-center mb-12">Courier Service Pricing Plans</h2>
+            
+            <div class="grid md:grid-cols-3 gap-8">
+                <!-- Restaurant Customers -->
+                <div class="bg-white rounded-xl shadow-lg p-8">
+                    <div class="text-center mb-6">
+                        <div class="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-bold mb-2">Per-Delivery Pricing</h3>
+                        <p class="text-gray-600">Pay per courier run — any business type</p>
+                    </div>
+                    
+                    <div class="space-y-3 mb-6">
+                        <div class="flex justify-between">
+                            <span>Standard Same-Day</span>
+                            <span class="font-medium">$15.99</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Rush / Express</span>
+                            <span class="font-medium">$24.99</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Large / Bulk Delivery</span>
+                            <span class="font-medium">$34.99</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Document / Envelope</span>
+                            <span class="font-medium">$9.99</span>
+                        </div>
+                        <div class="flex justify-between text-orange-600">
+                            <span>Bitcoin Discount</span>
+                            <span class="font-medium">-5%</span>
+                        </div>
+                    </div>
+                    
+                    <button onclick="showRestaurantPayment()" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors">
+                        Book a Delivery
+                    </button>
+                </div>
+
+                <!-- Business Partners -->
+                <div class="bg-white rounded-xl shadow-lg p-8 border-2 border-orange-200">
+                    <div class="text-center mb-6">
+                        <div class="bg-orange-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2V6"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-bold mb-2">Business Accounts</h3>
+                        <p class="text-gray-600">Monthly plans for regular courier needs</p>
+                        <div class="bg-orange-200 text-orange-800 px-3 py-1 rounded-full text-sm font-medium mt-2 inline-block">
+                            RECOMMENDED
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-3 mb-6">
+                        <div class="flex justify-between">
+                            <span>Starter (up to 30 runs/mo)</span>
+                            <span class="font-medium">$299/month</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Professional (up to 75 runs)</span>
+                            <span class="font-medium">$599/month</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Enterprise (unlimited)</span>
+                            <span class="font-medium">$999/month</span>
+                        </div>
+                        <div class="flex justify-between text-orange-600">
+                            <span>Bitcoin Discount</span>
+                            <span class="font-medium">-5%</span>
+                        </div>
+                    </div>
+                    
+                    <button onclick="showPartnerPayment()" class="w-full bg-sorse-gradient text-white py-3 rounded-lg hover:opacity-90 transition-opacity">
+                        Choose Partnership Plan
+                    </button>
+                </div>
+
+                <!-- Encore Canada -->
+                <div class="bg-white rounded-xl shadow-lg p-8">
+                    <div class="text-center mb-6">
+                        <div class="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-bold mb-2">Encore Canada</h3>
+                        <p class="text-gray-600">B2B Partnership - Net 30 Terms</p>
+                    </div>
+                    
+                    <div class="space-y-4 mb-6">
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <h4 class="font-semibold text-blue-800 mb-2">📦 DEBIT - SORSE Purchases</h4>
+                            <div class="text-sm space-y-1">
+                                <div class="flex justify-between">
+                                    <span>Food Service Products</span>
+                                    <span class="font-medium">Net 30</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Restaurant Supplies</span>
+                                    <span class="font-medium">Net 30</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Bulk Orders</span>
+                                    <span class="font-medium">Net 30</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+                            <h4 class="font-semibold text-green-800 mb-2">💰 CREDIT - Delivery Services</h4>
+                            <div class="text-sm space-y-1">
+                                <div class="flex justify-between">
+                                    <span>Per-Delivery Fee</span>
+                                    <span class="font-medium">$8.99</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Monthly Base</span>
+                                    <span class="font-medium">$1,999</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Payment Terms</span>
+                                    <span class="font-medium">Net 30</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between text-orange-600">
+                            <span>Bitcoin Discount (Both)</span>
+                            <span class="font-medium">-5%</span>
+                        </div>
+                    </div>
+                    
+                    <button onclick="showEncorePayment()" class="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors">
+                        Manage B2B Account
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Bitcoin Information -->
+    <section class="py-16 bg-white">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-3xl font-bold mb-8">Why We Support Bitcoin</h2>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div>
+                    <div class="bg-orange-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold mb-2">Instant Settlements</h3>
+                    <p class="text-gray-600">Bitcoin transactions settle in minutes, not days like traditional banking.</p>
+                </div>
+                <div>
+                    <div class="bg-orange-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold mb-2">Enhanced Security</h3>
+                    <p class="text-gray-600">Cryptographic security eliminates fraud and chargebacks.</p>
+                </div>
+                <div>
+                    <div class="bg-orange-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold mb-2">Lower Fees</h3>
+                    <p class="text-gray-600">Significantly lower transaction costs compared to credit card processing.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Payment Modals -->
+    <div id="paymentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg max-w-md w-full p-6">
+            <div id="modalContent">
+                <!-- Dynamic content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showTraditionalPayment() {
+            document.getElementById('modalContent').innerHTML = `
+                <h3 class="text-xl font-bold mb-4">Traditional Payment</h3>
+                <p class="text-gray-600 mb-4">Choose your preferred payment method:</p>
+                <div class="space-y-3">
+                    <button class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors">
+                        Credit/Debit Card
+                    </button>
+                    <button class="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors">
+                        Bank Transfer
+                    </button>
+                    <button class="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 transition-colors">
+                        PayPal
+                    </button>
+                </div>
+                <button onclick="hideModal()" class="w-full mt-4 border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                    Cancel
+                </button>
+            `;
+            document.getElementById('paymentModal').classList.remove('hidden');
+        }
+
+        function showBitcoinPayment() {
+            document.getElementById('modalContent').innerHTML = `
+                <h3 class="text-xl font-bold mb-4">Bitcoin Payment</h3>
+                <div class="text-center mb-4">
+                    <div class="bg-orange-100 p-4 rounded-lg mb-4">
+                        <p class="text-orange-800 font-medium">🎉 5% Discount Applied!</p>
+                    </div>
+                    <div class="bg-gray-100 p-4 rounded-lg mb-4">
+                        <p class="text-sm text-gray-600 mb-2">Send Bitcoin to:</p>
+                        <p class="font-mono text-xs break-all bg-white p-2 rounded border">bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh</p>
+                    </div>
+                    <p class="text-sm text-gray-600">Or scan QR code with your Bitcoin wallet</p>
+                </div>
+                <button onclick="hideModal()" class="w-full border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                    Close
+                </button>
+            `;
+            document.getElementById('paymentModal').classList.remove('hidden');
+        }
+
+        function showRestaurantPayment() {
+            document.getElementById('modalContent').innerHTML = `
+                <h3 class="text-xl font-bold mb-4">Restaurant Delivery Payment</h3>
+                <div class="space-y-4 mb-4">
+                    <div class="border rounded-lg p-3">
+                        <label class="flex items-center">
+                            <input type="radio" name="delivery" value="standard" class="mr-3">
+                            <span>Standard Delivery - $15.99</span>
+                        </label>
+                    </div>
+                    <div class="border rounded-lg p-3">
+                        <label class="flex items-center">
+                            <input type="radio" name="delivery" value="express" class="mr-3">
+                            <span>Express Delivery - $24.99</span>
+                        </label>
+                    </div>
+                    <div class="border rounded-lg p-3">
+                        <label class="flex items-center">
+                            <input type="radio" name="delivery" value="large" class="mr-3">
+                            <span>Large Order Delivery - $29.99</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="processPayment('traditional')" class="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors">
+                        Pay with Card
+                    </button>
+                    <button onclick="processPayment('bitcoin')" class="flex-1 bitcoin-gradient text-white py-3 rounded-lg hover:opacity-90 transition-opacity">
+                        Pay with Bitcoin (-5%)
+                    </button>
+                </div>
+                <button onclick="hideModal()" class="w-full mt-2 border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                    Cancel
+                </button>
+            `;
+            document.getElementById('paymentModal').classList.remove('hidden');
+        }
+
+        function showPartnerPayment() {
+            document.getElementById('modalContent').innerHTML = `
+                <h3 class="text-xl font-bold mb-4">Partnership Plan Payment</h3>
+                <div class="space-y-4 mb-4">
+                    <div class="border rounded-lg p-3">
+                        <label class="flex items-center">
+                            <input type="radio" name="plan" value="starter" class="mr-3">
+                            <span>Starter Plan - $299/month</span>
+                        </label>
+                    </div>
+                    <div class="border rounded-lg p-3">
+                        <label class="flex items-center">
+                            <input type="radio" name="plan" value="professional" class="mr-3">
+                            <span>Professional Plan - $599/month</span>
+                        </label>
+                    </div>
+                    <div class="border rounded-lg p-3">
+                        <label class="flex items-center">
+                            <input type="radio" name="plan" value="enterprise" class="mr-3">
+                            <span>Enterprise Plan - $999/month</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="processPayment('traditional')" class="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors">
+                        Pay with Card
+                    </button>
+                    <button onclick="processPayment('bitcoin')" class="flex-1 bitcoin-gradient text-white py-3 rounded-lg hover:opacity-90 transition-opacity">
+                        Pay with Bitcoin (-5%)
+                    </button>
+                </div>
+                <button onclick="hideModal()" class="w-full mt-2 border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                    Cancel
+                </button>
+            `;
+            document.getElementById('paymentModal').classList.remove('hidden');
+        }
+
+        function showEncorePayment() {
+            document.getElementById('modalContent').innerHTML = `
+                <h3 class="text-xl font-bold mb-4">Encore Canada B2B Account Management</h3>
+                <div class="space-y-4 mb-4">
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h4 class="font-semibold text-blue-800 mb-3">📦 DEBIT ACCOUNT - SORSE Purchases from Encore</h4>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span>Current Balance Owing:</span>
+                                <span class="font-medium text-red-600">$12,450.00</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Payment Terms:</span>
+                                <span class="font-medium">Net 30 Days</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Next Payment Due:</span>
+                                <span class="font-medium">Oct 15, 2025</span>
+                            </div>
+                        </div>
+                        <button onclick="processPayment('debit')" class="w-full mt-3 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                            Pay Outstanding Balance
+                        </button>
+                    </div>
+                    
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <h4 class="font-semibold text-green-800 mb-3">💰 CREDIT ACCOUNT - Delivery Services to Encore</h4>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span>Current Amount Receivable:</span>
+                                <span class="font-medium text-green-600">$8,750.00</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Monthly Base Fee:</span>
+                                <span class="font-medium">$1,999.00</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Deliveries This Month:</span>
+                                <span class="font-medium">752 × $8.99 = $6,761.48</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Payment Terms:</span>
+                                <span class="font-medium">Net 30 Days</span>
+                            </div>
+                        </div>
+                        <button onclick="generateInvoice()" class="w-full mt-3 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors text-sm">
+                            Generate Monthly Invoice
+                        </button>
+                    </div>
+                    
+                    <div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                        <h4 class="font-semibold text-orange-800 mb-3">🔄 NET POSITION</h4>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span>SORSE Owes Encore (Debit):</span>
+                                <span class="font-medium text-red-600">-$12,450.00</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Encore Owes SORSE (Credit):</span>
+                                <span class="font-medium text-green-600">+$8,750.00</span>
+                            </div>
+                            <hr class="my-2">
+                            <div class="flex justify-between font-bold">
+                                <span>Net Amount SORSE Owes:</span>
+                                <span class="text-red-600">$3,700.00</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                        <p class="text-yellow-800 text-sm">
+                            <strong>💡 Bitcoin Advantage:</strong> Pay with Bitcoin and save 5% on all transactions. 
+                            Net payment of $3,700 becomes $3,515 with Bitcoin!
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="flex gap-2">
+                    <button onclick="processPayment('traditional')" class="flex-1 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors">
+                        Pay Net Balance ($3,700)
+                    </button>
+                    <button onclick="processPayment('bitcoin')" class="flex-1 bitcoin-gradient text-white py-3 rounded-lg hover:opacity-90 transition-opacity">
+                        Pay with Bitcoin ($3,515)
+                    </button>
+                </div>
+                <button onclick="hideModal()" class="w-full mt-2 border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                    Close
+                </button>
+            `;
+            document.getElementById('paymentModal').classList.remove('hidden');
+        }
+
+        function processPayment(method) {
+            if (method === 'bitcoin') {
+                alert('Bitcoin payment processing... You will receive a 5% discount! Payment instructions will be sent to your email.');
+            } else if (method === 'debit') {
+                alert('Processing payment for SORSE purchases from Encore Canada...');
+            } else {
+                alert('Redirecting to secure payment processor...');
+            }
+            hideModal();
+        }
+
+        function generateInvoice() {
+            alert('Monthly invoice generated for Encore Canada delivery services. Invoice will be sent via email with Net 30 payment terms.');
+        }
+
+        function hideModal() {
+            document.getElementById('paymentModal').classList.add('hidden');
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('paymentModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                hideModal();
+            }
+        });
+    </script>
+</body>
+</html>
+

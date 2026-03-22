@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SORSE — AI Agent System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #0a0f1e; color: #e2e8f0; }
+
+        .hero-gradient { background: linear-gradient(135deg, #0a1628 0%, #1a3a6b 50%, #0a0f1e 100%); }
+        .card-gradient { background: linear-gradient(135deg, #111827 0%, #1e293b 100%); }
+        .agent-card { transition: all 0.3s ease; border: 1px solid #1e293b; }
+        .agent-card:hover { transform: translateY(-4px); border-color: #f97316; box-shadow: 0 20px 40px rgba(249,115,22,0.15); }
+
+        /* Agent color themes */
+        .theme-orange  { --accent: #f97316; --accent-bg: rgba(249,115,22,0.1); --accent-border: rgba(249,115,22,0.3); }
+        .theme-blue    { --accent: #3b82f6; --accent-bg: rgba(59,130,246,0.1); --accent-border: rgba(59,130,246,0.3); }
+        .theme-green   { --accent: #22c55e; --accent-bg: rgba(34,197,94,0.1); --accent-border: rgba(34,197,94,0.3); }
+        .theme-purple  { --accent: #a855f7; --accent-bg: rgba(168,85,247,0.1); --accent-border: rgba(168,85,247,0.3); }
+        .theme-yellow  { --accent: #eab308; --accent-bg: rgba(234,179,8,0.1); --accent-border: rgba(234,179,8,0.3); }
+        .theme-cyan    { --accent: #06b6d4; --accent-bg: rgba(6,182,212,0.1); --accent-border: rgba(6,182,212,0.3); }
+        .theme-red     { --accent: #ef4444; --accent-bg: rgba(239,68,68,0.1); --accent-border: rgba(239,68,68,0.3); }
+        .theme-indigo  { --accent: #6366f1; --accent-bg: rgba(99,102,241,0.1); --accent-border: rgba(99,102,241,0.3); }
+
+        .agent-badge { background: var(--accent-bg); border: 1px solid var(--accent-border); color: var(--accent); }
+        .agent-icon-ring { border: 2px solid var(--accent); background: var(--accent-bg); }
+        .agent-number { color: var(--accent); }
+        .section-title { color: var(--accent); }
+        .section-divider { border-color: var(--accent-border); }
+        .detail-tag { background: var(--accent-bg); border: 1px solid var(--accent-border); color: var(--accent); }
+        .goal-box { background: var(--accent-bg); border-left: 3px solid var(--accent); }
+
+        /* Modal */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
+        .modal-content { background: #111827; border-radius: 20px; max-width: 700px; width: 100%; max-height: 90vh; overflow-y: auto; border: 1px solid #1e293b; }
+        .modal-content::-webkit-scrollbar { width: 6px; }
+        .modal-content::-webkit-scrollbar-track { background: #1e293b; }
+        .modal-content::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
+
+        /* Pulse animation for CEO agent */
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(249,115,22,0.4); }
+            50% { box-shadow: 0 0 20px 6px rgba(249,115,22,0.15); }
+        }
+        .ceo-pulse { animation: pulse-glow 3s infinite; }
+
+        /* Grid layout */
+        .agents-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+
+        /* CEO card spans full width on desktop */
+        @media (min-width: 1024px) {
+            .ceo-card { grid-column: 1 / -1; }
+        }
+
+        .tag-pill { display: inline-block; background: #1e293b; border: 1px solid #334155; color: #94a3b8; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 999px; margin: 2px; }
+        .outreach-box { background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 16px; font-family: 'Courier New', monospace; font-size: 13px; color: #94a3b8; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+
+    <!-- ===== HERO ===== -->
+    <div class="hero-gradient pt-16 pb-12 px-6">
+        <div class="max-w-5xl mx-auto text-center">
+            <div class="flex items-center justify-center gap-3 mb-6">
+                <img src="sorse_logo_3_enhanced.png" alt="SORSE" class="h-10 brightness-0 invert opacity-90">
+            </div>
+            <div class="inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/30 rounded-full px-4 py-1.5 text-orange-400 text-xs font-bold uppercase tracking-widest mb-5">
+                🤖 AI Operations System
+            </div>
+            <h1 class="text-4xl md:text-5xl font-black text-white mb-4 leading-tight">
+                SORSE AI Agent System
+            </h1>
+            <p class="text-slate-400 text-lg max-w-2xl mx-auto mb-8">
+                Eight specialized AI agents working in coordination to automate operations, grow revenue, and scale SORSE Courier across the Greater Toronto Area.
+            </p>
+
+            <!-- Stats bar -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
+                <div class="bg-white/5 rounded-2xl p-4 border border-white/10">
+                    <div class="text-3xl font-black text-orange-400">8</div>
+                    <div class="text-xs text-slate-400 mt-1">AI Agents</div>
+                </div>
+                <div class="bg-white/5 rounded-2xl p-4 border border-white/10">
+                    <div class="text-3xl font-black text-blue-400">24/7</div>
+                    <div class="text-xs text-slate-400 mt-1">Operations</div>
+                </div>
+                <div class="bg-white/5 rounded-2xl p-4 border border-white/10">
+                    <div class="text-3xl font-black text-green-400">GTA</div>
+                    <div class="text-xs text-slate-400 mt-1">Service Area</div>
+                </div>
+                <div class="bg-white/5 rounded-2xl p-4 border border-white/10">
+                    <div class="text-3xl font-black text-purple-400">5</div>
+                    <div class="text-xs text-slate-400 mt-1">Services</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== AGENT GRID ===== -->
+    <div class="max-w-6xl mx-auto px-6 py-12">
+
+        <!-- CEO Agent (full width) -->
+        <div class="theme-orange mb-6">
+            <div class="agent-card ceo-card ceo-pulse card-gradient rounded-2xl p-6 cursor-pointer" onclick="openModal('ceo')">
+                <div class="flex items-start gap-5">
+                    <div class="agent-icon-ring flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center text-3xl">👑</div>
+                    <div class="flex-1">
+                        <div class="flex items-center gap-3 flex-wrap mb-2">
+                            <span class="agent-badge text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">Agent 7</span>
+                            <span class="text-white font-black text-xl">Command / CEO Agent</span>
+                            <span class="bg-orange-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">MASTER CONTROL</span>
+                        </div>
+                        <p class="text-slate-400 text-sm leading-relaxed mb-4">Coordinates all 7 other AI agents, creates weekly strategic plans, monitors performance metrics, and drives the growth of SORSE Courier through intelligent automation.</p>
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            <span class="tag-pill">Agent Coordination</span>
+                            <span class="tag-pill">Strategic Planning</span>
+                            <span class="tag-pill">Performance Monitoring</span>
+                            <span class="tag-pill">Daily Reports</span>
+                            <span class="tag-pill">Weekly Reports</span>
+                        </div>
+                        <div class="goal-box rounded-lg px-4 py-2 text-sm font-semibold text-slate-300">
+                            🎯 Goal: Grow SORSE Courier efficiently using automation.
+                        </div>
+                    </div>
+                    <div class="flex-shrink-0 hidden md:flex items-center text-slate-600 text-sm font-semibold gap-1">
+                        View Prompt <span class="text-lg">→</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7 Agent Cards -->
+        <div class="agents-grid">
+
+            <!-- Agent 1 -->
+            <div class="theme-blue">
+                <div class="agent-card card-gradient rounded-2xl p-5 cursor-pointer h-full" onclick="openModal('agent1')">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="agent-icon-ring w-12 h-12 rounded-xl flex items-center justify-center text-2xl">📱</div>
+                        <div>
+                            <div class="agent-badge text-xs font-bold px-2 py-0.5 rounded-full mb-1">Agent 1</div>
+                            <div class="text-white font-bold text-sm">Social Media Content Creator</div>
+                        </div>
+                    </div>
+                    <p class="text-slate-400 text-xs leading-relaxed mb-3">Produces 3 short-form videos per week for Instagram Reels, TikTok, and YouTube Shorts to attract inbound courier leads.</p>
+                    <div class="flex flex-wrap gap-1 mb-3">
+                        <span class="tag-pill">Instagram Reels</span>
+                        <span class="tag-pill">TikTok</span>
+                        <span class="tag-pill">YouTube Shorts</span>
+                        <span class="tag-pill">3 Videos/Week</span>
+                    </div>
+                    <div class="goal-box rounded-lg px-3 py-2 text-xs font-semibold text-slate-300">🎯 Generate inbound courier leads.</div>
+                </div>
+            </div>
+
+            <!-- Agent 2 -->
+            <div class="theme-green">
+                <div class="agent-card card-gradient rounded-2xl p-5 cursor-pointer h-full" onclick="openModal('agent2')">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="agent-icon-ring w-12 h-12 rounded-xl flex items-center justify-center text-2xl">🎯</div>
+                        <div>
+                            <div class="agent-badge text-xs font-bold px-2 py-0.5 rounded-full mb-1">Agent 2</div>
+                            <div class="text-white font-bold text-sm">Lead Generation & Sales</div>
+                        </div>
+                    </div>
+                    <p class="text-slate-400 text-xs leading-relaxed mb-3">Identifies GTA businesses in food and medical sectors, collects contacts, sends outreach, and tracks responses in a live lead list.</p>
+                    <div class="flex flex-wrap gap-1 mb-3">
+                        <span class="tag-pill">Restaurants</span>
+                        <span class="tag-pill">Pharmacies</span>
+                        <span class="tag-pill">Medical Labs</span>
+                        <span class="tag-pill">Outreach</span>
+                    </div>
+                    <div class="goal-box rounded-lg px-3 py-2 text-xs font-semibold text-slate-300">🎯 Build a steady pipeline of courier clients.</div>
+                </div>
+            </div>
+
+            <!-- Agent 3 -->
+            <div class="theme-yellow">
+                <div class="agent-card card-gradient rounded-2xl p-5 cursor-pointer h-full" onclick="openModal('agent3')">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="agent-icon-ring w-12 h-12 rounded-xl flex items-center justify-center text-2xl">🌾</div>
+                        <div>
+                            <div class="agent-badge text-xs font-bold px-2 py-0.5 rounded-full mb-1">Agent 3</div>
+                            <div class="text-white font-bold text-sm">Farm Logistics Planner</div>
+                        </div>
+                    </div>
+                    <p class="text-slate-400 text-xs leading-relaxed mb-3">Maps farms in Niagara, Simcoe, PEC, Durham, and Waterloo regions, building efficient farm-to-city pickup and delivery schedules.</p>
+                    <div class="flex flex-wrap gap-1 mb-3">
+                        <span class="tag-pill">Niagara</span>
+                        <span class="tag-pill">Simcoe</span>
+                        <span class="tag-pill">Prince Edward County</span>
+                        <span class="tag-pill">Durham</span>
+                    </div>
+                    <div class="goal-box rounded-lg px-3 py-2 text-xs font-semibold text-slate-300">🎯 Build efficient farm-to-city delivery logistics.</div>
+                </div>
+            </div>
+
+            <!-- Agent 4 -->
+            <div class="theme-cyan">
+                <div class="agent-card card-gradient rounded-2xl p-5 cursor-pointer h-full" onclick="openModal('agent4')">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="agent-icon-ring w-12 h-12 rounded-xl flex items-center justify-center text-2xl">⚙️</div>
+                        <div>
+                            <div class="agent-badge text-xs font-bold px-2 py-0.5 rounded-full mb-1">Agent 4</div>
+                            <div class="text-white font-bold text-sm">Operations Manager</div>
+                        </div>
+                    </div>
+                    <p class="text-slate-400 text-xs leading-relaxed mb-3">Manages sorse.ca, monitors customer emails, sends Telegram updates to the owner, tracks deliveries, and maintains financial records.</p>
+                    <div class="flex flex-wrap gap-1 mb-3">
+                        <span class="tag-pill">Website SEO</span>
+                        <span class="tag-pill">Email Monitoring</span>
+                        <span class="tag-pill">Telegram Alerts</span>
+                        <span class="tag-pill">Accounting</span>
+                    </div>
+                    <div class="goal-box rounded-lg px-3 py-2 text-xs font-semibold text-slate-300">🎯 Ensure smooth daily business operations.</div>
+                </div>
+            </div>
+
+            <!-- Agent 5 -->
+            <div class="theme-yellow">
+                <div class="agent-card card-gradient rounded-2xl p-5 cursor-pointer h-full" onclick="openModal('agent5')">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="agent-icon-ring w-12 h-12 rounded-xl flex items-center justify-center text-2xl">₿</div>
+                        <div>
+                            <div class="agent-badge text-xs font-bold px-2 py-0.5 rounded-full mb-1">Agent 5</div>
+                            <div class="text-white font-bold text-sm">Bitcoin Client Acquisition</div>
+                        </div>
+                    </div>
+                    <p class="text-slate-400 text-xs leading-relaxed mb-3">Identifies crypto-native businesses and startups in the GTA, offering courier services payable in Bitcoin to build a Bitcoin-paying client base.</p>
+                    <div class="flex flex-wrap gap-1 mb-3">
+                        <span class="tag-pill">Bitcoin Payments</span>
+                        <span class="tag-pill">Crypto Startups</span>
+                        <span class="tag-pill">Tech Companies</span>
+                        <span class="tag-pill">Outreach</span>
+                    </div>
+                    <div class="goal-box rounded-lg px-3 py-2 text-xs font-semibold text-slate-300">🎯 Build a client base that pays in Bitcoin.</div>
+                </div>
+            </div>
+
+            <!-- Agent 6 -->
+            <div class="theme-purple">
+                <div class="agent-card card-gradient rounded-2xl p-5 cursor-pointer h-full" onclick="openModal('agent6')">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="agent-icon-ring w-12 h-12 rounded-xl flex items-center justify-center text-2xl">📈</div>
+                        <div>
+                            <div class="agent-badge text-xs font-bold px-2 py-0.5 rounded-full mb-1">Agent 6</div>
+                            <div class="text-white font-bold text-sm">Investment Manager</div>
+                        </div>
+                    </div>
+                    <p class="text-slate-400 text-xs leading-relaxed mb-3">Manages a 50/50 Bitcoin and traditional investment portfolio, monitors markets, identifies opportunities, and provides weekly risk-adjusted reports.</p>
+                    <div class="flex flex-wrap gap-1 mb-3">
+                        <span class="tag-pill">50% Bitcoin</span>
+                        <span class="tag-pill">50% Traditional</span>
+                        <span class="tag-pill">ETFs</span>
+                        <span class="tag-pill">Portfolio Reports</span>
+                    </div>
+                    <div class="goal-box rounded-lg px-3 py-2 text-xs font-semibold text-slate-300">🎯 Grow company capital responsibly.</div>
+                </div>
+            </div>
+
+            <!-- Agent 8 -->
+            <div class="theme-indigo">
+                <div class="agent-card card-gradient rounded-2xl p-5 cursor-pointer h-full" onclick="openModal('agent8')">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="agent-icon-ring w-12 h-12 rounded-xl flex items-center justify-center text-2xl">🗺️</div>
+                        <div>
+                            <div class="agent-badge text-xs font-bold px-2 py-0.5 rounded-full mb-1">Agent 8</div>
+                            <div class="text-white font-bold text-sm">Route Optimization & Dispatch</div>
+                        </div>
+                    </div>
+                    <p class="text-slate-400 text-xs leading-relaxed mb-3">Designs optimized delivery routes for the EV courier vehicle, clustering stops geographically, prioritizing urgent deliveries, and planning charging stops.</p>
+                    <div class="flex flex-wrap gap-1 mb-3">
+                        <span class="tag-pill">EV Route Planning</span>
+                        <span class="tag-pill">Charging Stops</span>
+                        <span class="tag-pill">Priority Dispatch</span>
+                        <span class="tag-pill">Geo Clustering</span>
+                    </div>
+                    <div class="goal-box rounded-lg px-3 py-2 text-xs font-semibold text-slate-300">🎯 Maximize deliveries per route efficiently.</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ===== MODALS ===== -->
+
+    <!-- CEO Modal -->
+    <div id="modal-ceo" class="modal-overlay hidden" onclick="closeModal('ceo', event)">
+        <div class="modal-content theme-orange">
+            <div class="p-6 border-b border-slate-800">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="agent-icon-ring w-12 h-12 rounded-xl flex items-center justify-center text-2xl">👑</div>
+                        <div>
+                            <div class="agent-badge text-xs font-bold px-2 py-0.5 rounded-full mb-1 inline-block">Agent 7 — MASTER CONTROL</div>
+                            <div class="text-white font-black text-lg">Command / CEO Agent</div>
+                        </div>
+                    </div>
+                    <button onclick="closeModal('ceo')" class="text-slate-500 hover:text-white text-2xl leading-none">×</button>
+                </div>
+            </div>
+            <div class="p-6 space-y-5">
+                <div>
+                    <div class="section-title text-xs font-black uppercase tracking-widest mb-2">Role</div>
+                    <p class="text-slate-300 text-sm leading-relaxed">You are the Command and Coordination AI for SORSE Courier. Your role is to oversee all other agents, ensure alignment with company goals, and drive strategic growth through intelligent automation.</p>
+                </div>
+                <div>
+                    <div class="section-title text-xs font-black uppercase tracking-widest mb-2">Mission</div>
+                    <p class="text-slate-300 text-sm leading-relaxed">Coordinate all AI agents and oversee the growth of the company.</p>
+                </div>
+                <div>
+                    <div class="section-title text-xs font-black uppercase tracking-widest mb-3">Agents Under Your Control</div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="detail-tag rounded-lg px-3 py-2 text-xs font-semibold">📱 Agent 1 — Social Media</div>
+                        <div class="detail-tag rounded-lg px-3 py-2 text-xs font-semibold">🎯 Agent 2 — Lead Generation</div>
+                        <div class="detail-tag rounded-lg px-3 py-2 text-xs font-semibold">🌾 Agent 3 — Farm Logistics</div>
+                        <div class="detail-tag rounded-lg px-3 py-2 text-xs font-semibold">⚙️ Agent 4 — Operations</div>
+                        <div class="detail-tag rounded-lg px-3 py-2 text-xs font-semibold">₿ Agent 5 — Bitcoin Clients</div>
+                        <div class="detail-tag rounded-lg px-3 py-2 text-xs font-semibold">📈 Agent 6 — Investments</div>
+                        <div class="detail-tag rounded-lg px-3 py-2 text-xs font-semibold col-span-2">🗺️ Agent 8 — Route Optimization</div>
+                    </div>
+                </div>
+                <div>
+                    <div class="section-title text-xs font-black uppercase tracking-widest mb-2">Responsibilities</div>
+                    <ul class="text-slate-300 text-sm space-y-1.5">
+                        <li>• Coordinate all agent tasks and ensure they are aligned with weekly priorities.</li>
+                        <li>• Create weekly strategic plans for the business.</li>
+                        <li>• Monitor performance metrics across all agents.</li>
+                        <li>• Provide operational recommendations to the owner.</li>
+                    </ul>
+                </div>
+                <div>
+                    <div class="section-title text-xs font-black uppercase tracking-widest mb-3">Reporting</div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div class="bg-slate-800/50 rounded-xl p-4">
+                            <div class="text-white font-bold text-sm mb-2">📅 Daily Report</div>
+                            <ul class="text-slate-400 text-xs space-y-1">
+                                <li>• Leads generated</li>
+                                <li>• Businesses contacted</li>
+                                <li>• Deliveries scheduled</li>
+                                <li>• Revenue</li>
+                                <li>• Bitcoin income</li>
+                            </ul>
+                        </div>
+                        <div class="bg-slate-800/50 rounded-xl p-4">
+                            <div class="text-white font-bold text-sm mb-2">📊 Weekly Report</div>
+                            <ul class="text-slate-400 text-xs space-y-1">
+                                <li>• Marketing performance</li>
+                                <li>• New clients acquired</li>
+                                <li>• Delivery volume</li>
+                                <li>• Revenue growth</li>
+                                <li>• Investment performance</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="goal-box rounded-xl px-4 py-3">
+                    <div class="text-white font-black text-sm">🎯 Goal: Grow SORSE Courier efficiently using automation.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Agent 1 Modal -->
+    <div id="modal-agent1" class="modal-overlay hidden" onclick="closeModal('agent1', event)">
+        <div class="modal-content theme-blue">
+            <div class="p-6 border-b border-slate-800">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="agent-icon-ring w-12 h-12 rounded-xl flex items-center justify-center text-2xl">📱</div>
+                        <div>
+                            <div class="agent-badge text-xs font-bold px-2 py-0.5 rounded-full mb-1 inline-block">Agent 1</div>
+                            <div class="text-white font-black text-lg">Social Media Content Creator</div>
+                        </div>
+                    </div>
+                    <button onclick="closeModal('agent1')" class="text-slate-500 hover:text-white text-2xl leading-none">×</button>
+                </div>
+            </div>
+            <div class="p-6 space-y-5">
+                <div>
+                    <div class="section-title text-xs font-black uppercase tracking-widest mb-2">Mission</div>
+                    <p class="text-slate-300 text-sm leading-relaxed">Generate engaging social media content that attracts businesses needing courier services. Produce 3 short-form videos per week across Instagram Reels, TikTok, and YouTube Shorts (15–30 seconds each).</p>
+                </div>
+                <div>
+                    <div class="section-title text-xs font-black uppercase tracking-widest mb-2">Content Themes</div>
+                    <div class="flex flex-wrap gap-1.5">
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Last mile delivery</span>
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Emergency evening deliveries</span>
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Restaurant supply runs</span>
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Medical courier services</span>
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Farm-to-city food delivery</span>
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Small business logistics</span>
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Behind the scenes</span>
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Why businesses need couriers</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="section-title text-xs font-black uppercase tracking-widest mb-2">Video Structure</div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="bg-slate-800/50 rounded-xl p-3 text-center"><div class="text-blue-400 font-black text-lg">1</div><div class="text-white text-xs font-bold">HOOK</div><div class="text-slate-500 text-xs">First 3 seconds</div></div>
+                        <div class="bg-slate-800/50 rounded-xl p-3 text-center"><div class="text-blue-400 font-black text-lg">2</div><div class="text-white text-xs font-bold">PROBLEM</div><div class="text-slate-500 text-xs">Pain point</div></div>
+                        <div class="bg-slate-800/50 rounded-xl p-3 text-center"><div class="text-blue-400 font-black text-lg">3</div><div class="text-white text-xs font-bold">SOLUTION</div><div class="text-slate-500 text-xs">SORSE Courier</div></div>
+                        <div class="bg-slate-800/50 rounded-xl p-3 text-center"><div class="text-blue-400 font-black text-lg">4</div><div class="text-white text-xs font-bold">CALL TO ACTION</div><div class="text-slate-500 text-xs">Book a courier</div></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="section-title text-xs font-black uppercase tracking-widest mb-2">Output Format</div>
+                    <p class="text-slate-300 text-sm">Weekly Content Plan with 3 entries, each containing: Video Script, Caption, Hashtags, and Visual Ideas.</p>
+                </div>
+                <div class="goal-box rounded-xl px-4 py-3">
+                    <div class="text-white font-black text-sm">🎯 Goal: Generate inbound courier leads.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Agent 2 Modal -->
+    <div id="modal-agent2" class="modal-overlay hidden" onclick="closeModal('agent2', event)">
+        <div class="modal-content theme-green">
+            <div class="p-6 border-b border-slate-800">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="agent-icon-ring w-12 h-12 rounded-xl flex items-center justify-center text-2xl">🎯</div>
+                        <div>
+                            <div class="agent-badge text-xs font-bold px-2 py-0.5 rounded-full mb-1 inline-block">Agent 2</div>
+                            <div class="text-white font-black text-lg">Lead Generation & Sales</div>
+                        </div>
+                    </div>
+                    <button onclick="closeModal('agent2')" class="text-slate-500 hover:text-white text-2xl leading-none">×</button>
+                </div>
+            </div>
+            <div class="p-6 space-y-5">
+                <div>
+                    <div class="section-title text-xs font-black uppercase tracking-widest mb-2">Mission</div>
+                    <p class="text-slate-300 text-sm leading-relaxed">Find businesses in the GTA that regularly require courier services. Priority sectors are food delivery logistics and medical courier services.</p>
+                </div>
+                <div>
+                    <div class="section-title text-xs font-black uppercase tracking-widest mb-2">Target Industries</div>
+                    <div class="flex flex-wrap gap-1.5">
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Restaurants</span>
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Food Suppliers</span>
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Catering Companies</span>
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Medical Clinics</span>
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Pharmacies</span>
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Medical Labs</span>
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Meal Prep Companies</span>
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Bakeries</span>
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Grocery Suppliers</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="section-title text-xs font-black uppercase tracking-widest mb-2">Outreach Template</div>
+                    <div class="outreach-box">Subject: Fast Courier Support for Your Business
+
+Hello,
+
+My name is Gianluca from SORSE Courier.
+
+We provide last-mile and evening express courier services
+across the Greater Toronto Area.
+
+We help restaurants and medical businesses move supplies
+quickly when they need urgent deliveries.
+
+If your business ever requires reliable courier support,
+we would be happy to help.
+
+Best regards,
+SORSE Courier</div>
+                </div>
+                <div>
+                    <div class="section-title text-xs font-black uppercase tracking-widest mb-2">Weekly Report Includes</div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="bg-slate-800/50 rounded-xl p-3 text-xs text-slate-300">📋 Businesses contacted</div>
+                        <div class="bg-slate-800/50 rounded-xl p-3 text-xs text-slate-300">💬 Responses received</div>
+                        <div class="bg-slate-800/50 rounded-xl p-3 text-xs text-slate-300">🌟 Potential clients</div>
+                        <div class="bg-slate-800/50 rounded-xl p-3 text-xs text-slate-300">✅ New contracts</div>
+                    </div>
+                </div>
+                <div class="goal-box rounded-xl px-4 py-3">
+                    <div class="text-white font-black text-sm">🎯 Goal: Build a steady pipeline of courier clients.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Agent 3 Modal -->
+    <div id="modal-agent3" class="modal-overlay hidden" onclick="closeModal('agent3', event)">
+        <div class="modal-content theme-yellow">
+            <div class="p-6 border-b border-slate-800">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="agent-icon-ring w-12 h-12 rounded-xl flex items-center justify-center text-2xl">🌾</div>
+                        <div>
+                            <div class="agent-badge text-xs font-bold px-2 py-0.5 rounded-full mb-1 inline-block">Agent 3</div>
+                            <div class="text-white font-black text-lg">Farm Logistics Planner</div>
+                        </div>
+                    </div>
+                    <button onclick="closeModal('agent3')" class="text-slate-500 hover:text-white text-2xl leading-none">×</button>
+                </div>
+            </div>
+            <div class="p-6 space-y-5">
+                <div>
+                    <div class="section-title text-xs font-black uppercase tracking-widest mb-2">Mission</div>
+                    <p class="text-slate-300 text-sm leading-relaxed">Identify farms outside Toronto that supply food to restaurants and suppliers in the GTA. Build efficient pickup and delivery route plans organized by region and day.</p>
+                </div>
+                <div>
+                    <div class="section-title text-xs font-black uppercase tracking-widest mb-2">Target Regions</div>
+                    <div class="flex flex-wrap gap-1.5">
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Niagara Region</span>
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Prince Edward County</span>
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Simcoe County</span>
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Durham Region</span>
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Waterloo Region</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="section-title text-xs font-black uppercase tracking-widest mb-2">Example Weekly Schedule</div>
+                    <div class="space-y-2">
+                        <div class="bg-slate-800/50 rounded-xl p-3 flex items-center gap-3">
+                            <span class="detail-tag text-xs px-2 py-1 rounded-lg font-black">MON</span>
+                            <span class="text-slate-300 text-sm">Niagara farms → Toronto restaurants</span>
+                        </div>
+                        <div class="bg-slate-800/50 rounded-xl p-3 flex items-center gap-3">
+                            <span class="detail-tag text-xs px-2 py-1 rounded-lg font-black">TUE</span>
+                            <span class="text-slate-300 text-sm">Simcoe farms → GTA food suppliers</span>
+                        </div>
+                        <div class="bg-slate-800/50 rounded-xl p-3 flex items-center gap-3">
+                            <span class="detail-tag text-xs px-2 py-1 rounded-lg font-black">WED</span>
+                            <span class="text-slate-300 text-sm">Prince Edward County → Toronto restaurants</span>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div class="section-title text-xs font-black uppercase tracking-widest mb-2">Output Format</div>
+                    <p class="text-slate-300 text-sm">Farm Name · Pickup Location · Delivery Area · Travel Time · Suggested Delivery Day</p>
+                </div>
+                <div class="goal-box rounded-xl px-4 py-3">
+                    <div class="text-white font-black text-sm">🎯 Goal: Build efficient farm-to-city delivery logistics.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Agent 4 Modal -->
+    <div id="modal-agent4" class="modal-overlay hidden" onclick="closeModal('agent4', event)">
+        <div class="modal-content theme-cyan">
+            <div class="p-6 border-b border-slate-800">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="agent-icon-ring w-12 h-12 rounded-xl flex items-center justify-center text-2xl">⚙️</div>
+                        <div>
+                            <div class="agent-badge text-xs font-bold px-2 py-0.5 rounded-full mb-1 inline-block">Agent 4</div>
+                            <div class="text-white font-black text-lg">Operations Manager</div>
+                        </div>
+                    </div>
+                    <button onclick="closeModal('agent4')" class="text-slate-500 hover:text-white text-2xl leading-none">×</button>
+                </div>
+            </div>
+            <div class="p-6 space-y-5">
+                <div>
+                    <div class="section-title text-xs font-black uppercase tracking-widest mb-2">Mission</div>
+                    <p class="text-slate-300 text-sm leading-relaxed">Maintain daily operations, communications, and financial organization for sorse.ca. Act as the central nervous system of the business.</p>
+                </div>
+                <div>
+                    <div class="section-title text-xs font-black uppercase tracking-widest mb-2">Responsibilities</div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div class="bg-slate-800/50 rounded-xl p-4">
+                            <div class="text-white font-bold text-sm mb-2">🌐 Website Management</div>
+                            <ul class="text-slate-400 text-xs space-y-1"><li>• Maintain website content</li><li>• Improve SEO</li><li>• Update services & announcements</li></ul>
+                        </div>
+                        <div class="bg-slate-800/50 rounded-xl p-4">
+                            <div class="text-white font-bold text-sm mb-2">📧 Customer Communication</div>
+                            <ul class="text-slate-400 text-xs space-y-1"><li>• Monitor incoming emails</li><li>• Respond to inquiries</li><li>• Send Telegram updates to owner</li></ul>
+                        </div>
+                        <div class="bg-slate-800/50 rounded-xl p-4">
+                            <div class="text-white font-bold text-sm mb-2">📦 Administration</div>
+                            <ul class="text-slate-400 text-xs space-y-1"><li>• Track deliveries & orders</li><li>• Record revenue</li><li>• Record business expenses</li></ul>
+                        </div>
+                        <div class="bg-slate-800/50 rounded-xl p-4">
+                            <div class="text-white font-bold text-sm mb-2">💰 Financial Tracking</div>
+                            <ul class="text-slate-400 text-xs space-y-1"><li>• Maintain accounting records</li><li>• Prepare tax summaries</li><li>• Track profitability</li></ul>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div class="section-title text-xs font-black uppercase tracking-widest mb-2">Daily Summary Includes</div>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">New leads</span>
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Customer messages</span>
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Deliveries scheduled</span>
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Revenue generated</span>
+                    </div>
+                </div>
+                <div class="goal-box rounded-xl px-4 py-3">
+                    <div class="text-white font-black text-sm">🎯 Goal: Ensure smooth daily business operations.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Agent 5 Modal -->
+    <div id="modal-agent5" class="modal-overlay hidden" onclick="closeModal('agent5', event)">
+        <div class="modal-content theme-yellow">
+            <div class="p-6 border-b border-slate-800">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="agent-icon-ring w-12 h-12 rounded-xl flex items-center justify-center text-2xl">₿</div>
+                        <div>
+                            <div class="agent-badge text-xs font-bold px-2 py-0.5 rounded-full mb-1 inline-block">Agent 5</div>
+                            <div class="text-white font-black text-lg">Bitcoin Client Acquisition</div>
+                        </div>
+                    </div>
+                    <button onclick="closeModal('agent5')" class="text-slate-500 hover:text-white text-2xl leading-none">×</button>
+                </div>
+            </div>
+            <div class="p-6 space-y-5">
+                <div>
+                    <div class="section-title text-xs font-black uppercase tracking-widest mb-2">Mission</div>
+                    <p class="text-slate-300 text-sm leading-relaxed">Identify businesses that use Bitcoin and may need courier services. Offer SORSE Courier services payable in Bitcoin to build a crypto-native client base.</p>
+                </div>
+                <div>
+                    <div class="section-title text-xs font-black uppercase tracking-widest mb-2">Target Companies</div>
+                    <div class="flex flex-wrap gap-1.5">
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Bitcoin companies</span>
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Crypto payment businesses</span>
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Crypto startups</span>
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Tech companies accepting Bitcoin</span>
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Businesses advertising Bitcoin</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="section-title text-xs font-black uppercase tracking-widest mb-2">Outreach Message</div>
+                    <div class="outreach-box">Hello,
+
+SORSE Courier provides fast courier and last-mile delivery
+across the Greater Toronto Area.
+
+We are interested in working with businesses that use Bitcoin
+and we are happy to accept Bitcoin payments for courier services.
+
+If your company requires delivery logistics, we would love to help.
+
+Best regards,
+SORSE Courier</div>
+                </div>
+                <div class="goal-box rounded-xl px-4 py-3">
+                    <div class="text-white font-black text-sm">🎯 Goal: Build a client base that pays in Bitcoin.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Agent 6 Modal -->
+    <div id="modal-agent6" class="modal-overlay hidden" onclick="closeModal('agent6', event)">
+        <div class="modal-content theme-purple">
+            <div class="p-6 border-b border-slate-800">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="agent-icon-ring w-12 h-12 rounded-xl flex items-center justify-center text-2xl">📈</div>
+                        <div>
+                            <div class="agent-badge text-xs font-bold px-2 py-0.5 rounded-full mb-1 inline-block">Agent 6</div>
+                            <div class="text-white font-black text-lg">Investment Manager</div>
+                        </div>
+                    </div>
+                    <button onclick="closeModal('agent6')" class="text-slate-500 hover:text-white text-2xl leading-none">×</button>
+                </div>
+            </div>
+            <div class="p-6 space-y-5">
+                <div>
+                    <div class="section-title text-xs font-black uppercase tracking-widest mb-2">Mission</div>
+                    <p class="text-slate-300 text-sm leading-relaxed">Grow company profits through disciplined investment using a balanced 50/50 strategy between Bitcoin and traditional financial instruments.</p>
+                </div>
+                <div>
+                    <div class="section-title text-xs font-black uppercase tracking-widest mb-2">Investment Strategy</div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-slate-800/50 rounded-xl p-4 text-center">
+                            <div class="text-yellow-400 font-black text-2xl mb-1">50%</div>
+                            <div class="text-white font-bold text-sm mb-2">₿ Bitcoin</div>
+                            <div class="text-slate-400 text-xs">Digital asset allocation</div>
+                        </div>
+                        <div class="bg-slate-800/50 rounded-xl p-4 text-center">
+                            <div class="text-purple-400 font-black text-2xl mb-1">50%</div>
+                            <div class="text-white font-bold text-sm mb-2">📊 Traditional</div>
+                            <div class="text-slate-400 text-xs">ETFs, index funds, tech stocks, logistics</div>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div class="section-title text-xs font-black uppercase tracking-widest mb-2">Weekly Report Includes</div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="bg-slate-800/50 rounded-xl p-3 text-xs text-slate-300">₿ Bitcoin market outlook</div>
+                        <div class="bg-slate-800/50 rounded-xl p-3 text-xs text-slate-300">💡 Investment opportunities</div>
+                        <div class="bg-slate-800/50 rounded-xl p-3 text-xs text-slate-300">📊 Portfolio performance</div>
+                        <div class="bg-slate-800/50 rounded-xl p-3 text-xs text-slate-300">🛡️ Risk management</div>
+                    </div>
+                </div>
+                <div class="goal-box rounded-xl px-4 py-3">
+                    <div class="text-white font-black text-sm">🎯 Goal: Grow company capital responsibly.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Agent 8 Modal -->
+    <div id="modal-agent8" class="modal-overlay hidden" onclick="closeModal('agent8', event)">
+        <div class="modal-content theme-indigo">
+            <div class="p-6 border-b border-slate-800">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="agent-icon-ring w-12 h-12 rounded-xl flex items-center justify-center text-2xl">🗺️</div>
+                        <div>
+                            <div class="agent-badge text-xs font-bold px-2 py-0.5 rounded-full mb-1 inline-block">Agent 8</div>
+                            <div class="text-white font-black text-lg">Route Optimization & Dispatch</div>
+                        </div>
+                    </div>
+                    <button onclick="closeModal('agent8')" class="text-slate-500 hover:text-white text-2xl leading-none">×</button>
+                </div>
+            </div>
+            <div class="p-6 space-y-5">
+                <div>
+                    <div class="section-title text-xs font-black uppercase tracking-widest mb-2">Mission</div>
+                    <p class="text-slate-300 text-sm leading-relaxed">Design efficient delivery routes for the EV courier vehicle, minimizing travel time and distance while maximizing the number of deliveries completed per route.</p>
+                </div>
+                <div>
+                    <div class="section-title text-xs font-black uppercase tracking-widest mb-2">Objectives</div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="bg-slate-800/50 rounded-xl p-3"><div class="text-red-400 text-xs font-black mb-1">MINIMIZE</div><ul class="text-slate-400 text-xs space-y-1"><li>• Travel time</li><li>• Distance driven</li><li>• Charging interruptions</li></ul></div>
+                        <div class="bg-slate-800/50 rounded-xl p-3"><div class="text-green-400 text-xs font-black mb-1">MAXIMIZE</div><ul class="text-slate-400 text-xs space-y-1"><li>• Deliveries per route</li><li>• Driver efficiency</li></ul></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="section-title text-xs font-black uppercase tracking-widest mb-2">Route Planning Rules</div>
+                    <div class="flex flex-wrap gap-1.5">
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Group by region</span>
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">No backtracking</span>
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Prioritize urgent</span>
+                        <span class="detail-tag text-xs px-2 py-1 rounded-lg">Geo clustering</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="section-title text-xs font-black uppercase tracking-widest mb-2">EV Considerations</div>
+                    <p class="text-slate-300 text-sm leading-relaxed">The courier vehicle is electric. All routes must account for battery range, available charging stations, and charging time. Charging stops are added to routes when required.</p>
+                </div>
+                <div>
+                    <div class="section-title text-xs font-black uppercase tracking-widest mb-2">Output Format</div>
+                    <p class="text-slate-300 text-sm">Route Name · Pickup Locations · Delivery Stops · Total Distance · Estimated Time · Priority Level · Charging Stops (if required)</p>
+                </div>
+                <div class="goal-box rounded-xl px-4 py-3">
+                    <div class="text-white font-black text-sm">🎯 Goal: Enable SORSE Courier to complete the maximum number of deliveries efficiently.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== FOOTER ===== -->
+    <div class="border-t border-slate-800 mt-12 py-8 px-6 text-center">
+        <div class="text-slate-500 text-sm">
+            SORSE Courier AI Agent System · <a href="index.html" class="text-orange-400 hover:text-orange-300">sorse.ca</a> · Greater Toronto Area
+        </div>
+    </div>
+
+    <script>
+    function openModal(id) {
+        document.getElementById('modal-' + id).classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeModal(id, event) {
+        if (!event || event.target === document.getElementById('modal-' + id)) {
+            document.getElementById('modal-' + id).classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+    }
+    </script>
+</body>
+</html>

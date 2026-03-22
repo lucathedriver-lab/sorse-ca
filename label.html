@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SORSE — Shipping Label Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Courier+Prime:wght@400;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background: #f1f5f9; }
+
+        /* ===== PRINT STYLES ===== */
+        @media print {
+            body * { visibility: hidden; }
+            #label-print-area, #label-print-area * { visibility: visible; }
+            #label-print-area {
+                position: fixed;
+                top: 0; left: 0;
+                width: 4in;
+                height: 6in;
+                margin: 0;
+                padding: 0;
+            }
+            .no-print { display: none !important; }
+        }
+
+        /* ===== LABEL STYLES ===== */
+        #label-print-area {
+            width: 4in;
+            min-height: 6in;
+            background: white;
+            border: 2px solid #000;
+            font-family: 'Inter', sans-serif;
+            font-size: 10pt;
+            page-break-inside: avoid;
+        }
+
+        .label-header {
+            background: #fff;
+            color: #000;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid #000;
+        }
+
+        .label-priority-badge {
+            font-size: 10pt;
+            font-weight: 900;
+            letter-spacing: 1px;
+            padding: 4px 10px;
+            border-radius: 0;
+            text-transform: uppercase;
+            border: 2px solid #000;
+            background: #000;
+            color: #fff;
+        }
+
+        .priority-rush { background: #000; color: #fff; border: 2px solid #000; }
+        .priority-priority { background: #000; color: #fff; border: 2px solid #000; }
+        .priority-b2b { background: #000; color: #fff; border: 2px solid #000; }
+        .priority-b2c { background: #fff; color: #000; border: 2px solid #000; }
+        .priority-evening { background: #3730a3; color: #fff; border: 2px solid #3730a3; }
+
+        .label-section {
+            border-bottom: 1.5px solid #000;
+            padding: 6px 10px;
+        }
+
+        .label-section-title {
+            font-size: 7pt;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #000;
+            margin-bottom: 2px;
+        }
+
+        .label-address {
+            font-size: 11pt;
+            font-weight: 700;
+            line-height: 1.4;
+        }
+
+        .label-barcode-area {
+            padding: 8px 10px;
+            text-align: center;
+            border-bottom: 1.5px solid #000;
+        }
+
+        .label-order-number {
+            font-family: 'Courier Prime', monospace;
+            font-size: 22pt;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-align: center;
+            margin-top: 2px;
+            color: #000;
+        }
+
+        .label-footer {
+            background: #fff;
+            padding: 6px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 8pt;
+            border-top: 1.5px solid #000;
+        }
+
+        .label-service-box {
+            border: 2px solid #000;
+            padding: 4px 8px;
+            font-weight: 900;
+            font-size: 10pt;
+            text-transform: uppercase;
+            color: #000;
+            background: #fff;
+        }
+
+        .sorse-gradient-text {
+            background: linear-gradient(135deg, #1a3a6b, #f97316);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+    </style>
+</head>
+<body class="min-h-screen py-8 px-4">
+
+    <!-- Page Header -->
+    <div class="max-w-5xl mx-auto no-print">
+        <div class="flex items-center gap-4 mb-8">
+            <a href="index.html">
+                <img src="sorse_logo_3_enhanced.png" alt="SORSE" class="h-14">
+            </a>
+            <div>
+                <h1 class="text-3xl font-black sorse-gradient-text">Shipping Label Generator</h1>
+                <p class="text-gray-500 text-sm">Fill in the order details to generate a print-ready SORSE shipping label</p>
+            </div>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-8">
+
+            <!-- ===== ORDER FORM ===== -->
+            <div class="bg-white rounded-2xl shadow-md p-6">
+                <h2 class="text-xl font-bold mb-5 text-gray-800">📋 Order Details</h2>
+
+                <!-- Priority Selection -->
+                <div class="mb-5">
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Priority Level *</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="priority" value="RUSH" class="hidden peer" onchange="updateLabel()">
+                            <div class="peer-checked:bg-red-500 peer-checked:text-white peer-checked:border-red-500 border-2 border-gray-200 rounded-xl p-3 text-center transition-all hover:border-red-300">
+                                <div class="text-lg">⚡</div>
+                                <div class="font-bold text-sm">Rush</div>
+                                <div class="text-xs text-gray-500 peer-checked:text-red-100">90 min</div>
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="priority" value="PRIORITY" class="hidden peer" onchange="updateLabel()">
+                            <div class="peer-checked:bg-orange-500 peer-checked:text-white peer-checked:border-orange-500 border-2 border-gray-200 rounded-xl p-3 text-center transition-all hover:border-orange-300">
+                                <div class="text-lg">🕒</div>
+                                <div class="font-bold text-sm">Priority</div>
+                                <div class="text-xs text-gray-500">3 hours</div>
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="priority" value="SAMEDAY B2B" class="hidden peer" checked onchange="updateLabel()">
+                            <div class="peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 border-2 border-blue-600 rounded-xl p-3 text-center transition-all hover:border-blue-400">
+                                <div class="text-lg">🏢</div>
+                                <div class="font-bold text-sm">Sameday B2B</div>
+                                <div class="text-xs text-gray-500">by 5 p.m.</div>
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="priority" value="SAMEDAY B2C" class="hidden peer" onchange="updateLabel()">
+                            <div class="peer-checked:bg-green-600 peer-checked:text-white peer-checked:border-green-600 border-2 border-gray-200 rounded-xl p-3 text-center transition-all hover:border-green-300">
+                                <div class="text-lg">🏠</div>
+                                <div class="font-bold text-sm">Sameday B2C</div>
+                                <div class="text-xs text-gray-500">by 8 p.m.</div>
+                            </div>
+                        </label>
+                        <label class="cursor-pointer col-span-2">
+                            <input type="radio" name="priority" value="EVENING EXPRESS" class="hidden peer" onchange="updateLabel()">
+                            <div class="peer-checked:bg-indigo-700 peer-checked:text-white peer-checked:border-indigo-700 border-2 border-gray-200 rounded-xl p-3 text-center transition-all hover:border-indigo-400">
+                                <div class="text-lg">🌙</div>
+                                <div class="font-bold text-sm">Evening Express</div>
+                                <div class="text-xs text-gray-500">6 p.m. – 12 a.m.</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Service Type -->
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Service Type *</label>
+                    <select id="serviceType" onchange="updateLabel()" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2 focus:border-blue-500 outline-none">
+                        <option value="SOLO">📦 Solo — up to 2 parcels</option>
+                        <option value="DOUBLE">📦📦 Double — up to 4 parcels</option>
+                        <option value="MULTI">📦×5 Multi — up to 10 parcels</option>
+                        <option value="LARGE MULTI">📦×10 Large Multi — up to 20 parcels</option>
+                        <option value="BULK">📦×20 Bulk — up to 40 parcels</option>
+                    </select>
+                </div>
+
+                <!-- Piece Count -->
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Pieces</label>
+                        <input type="number" id="pieces" value="1" min="1" max="40" onchange="updateLabel()" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2 focus:border-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Weight (lbs)</label>
+                        <input type="number" id="weight" value="" placeholder="Optional" onchange="updateLabel()" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2 focus:border-blue-500 outline-none">
+                    </div>
+                </div>
+
+                <!-- Location Type -->
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">📍 Delivery Location Type *</label>
+                    <select id="locationType" onchange="handleLocationChange()" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2 focus:border-blue-500 outline-none">
+                        <option value="">— Select location type —</option>
+                        <option value="HOUSE">🏠 1. House</option>
+                        <option value="APARTMENT">🏢 2. Apartment / Condominium</option>
+                        <option value="OFFICE">🏛️ 3. Office Building</option>
+                        <option value="RESTAURANT">🍽️ 4. Restaurant</option>
+                        <option value="WAREHOUSE">🏭 5. Warehouse</option>
+                    </select>
+                </div>
+
+                <!-- APARTMENT sub-fields -->
+                <div id="aptFields" class="hidden mb-4 bg-blue-50 rounded-xl p-4 border border-blue-200">
+                    <div class="text-xs font-bold text-blue-700 mb-2 uppercase">Apartment / Condo Details</div>
+                    <input type="text" id="aptNumber" placeholder="Apartment / Unit number" oninput="updateLabel()" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2 focus:border-blue-500 outline-none mb-2">
+                    <input type="text" id="aptBuzz" placeholder="Buzz / Intercom code" oninput="updateLabel()" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2 focus:border-blue-500 outline-none mb-2">
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Delivery Method</label>
+                    <select id="aptDelivery" onchange="updateLabel()" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2 focus:border-blue-500 outline-none">
+                        <option value="DELIVER TO UNIT">1. Delivery parcel up to unit</option>
+                        <option value="SECURITY / CONCIERGE">2. Leave with Security or Concierge</option>
+                        <option value="MAIL ROOM / PARCEL STATION">3. Mail room or Parcel Pick-up Station</option>
+                    </select>
+                </div>
+
+                <!-- OFFICE sub-fields -->
+                <div id="officeFields" class="hidden mb-4 bg-yellow-50 rounded-xl p-4 border border-yellow-200">
+                    <div class="text-xs font-bold text-yellow-700 mb-2 uppercase">Office Building Details</div>
+                    <input type="text" id="officeUnit" placeholder="Office unit / suite number" oninput="updateLabel()" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2 focus:border-blue-500 outline-none mb-2">
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Delivery Method</label>
+                    <select id="officeDelivery" onchange="handleOfficeDeliveryChange()" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2 focus:border-blue-500 outline-none mb-2">
+                        <option value="DELIVER TO UNIT">1. Deliver to unit in office building</option>
+                        <option value="LEAVE WITH SECURITY">2. Leave with security</option>
+                        <option value="MAIL ROOM">3. Leave in mail room</option>
+                    </select>
+                    <div id="officeMailroomField" class="hidden">
+                        <input type="text" id="officeMailroomLocation" placeholder="Where is the mailroom located?" oninput="updateLabel()" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2 focus:border-blue-500 outline-none">
+                    </div>
+                </div>
+
+                <!-- RESTAURANT sub-fields -->
+                <div id="restaurantFields" class="hidden mb-4 bg-orange-50 rounded-xl p-4 border border-orange-200">
+                    <div class="text-xs font-bold text-orange-700 mb-2 uppercase">Restaurant Details</div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Restaurant Location</label>
+                    <select id="restaurantType" onchange="updateLabel()" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2 focus:border-blue-500 outline-none mb-2">
+                        <option value="SEPARATE BUILDING">1. Separate building</option>
+                        <option value="INSIDE OFFICE BUILDING">2. Located inside office building</option>
+                    </select>
+                    <input type="text" id="restaurantShipReceiving" placeholder="Is there a shipping &amp; receiving? Where is it located?" oninput="updateLabel()" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2 focus:border-blue-500 outline-none">
+                </div>
+
+                <!-- WAREHOUSE sub-fields -->
+                <div id="warehouseFields" class="hidden mb-4 bg-gray-100 rounded-xl p-4 border border-gray-300">
+                    <div class="text-xs font-bold text-gray-700 mb-2 uppercase">Warehouse Details</div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Delivery Point</label>
+                    <select id="warehouseDelivery" onchange="handleWarehouseChange()" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2 focus:border-blue-500 outline-none mb-2">
+                        <option value="OFFICE RECEPTION">1. Office reception</option>
+                        <option value="SHIPPING AND RECEIVING">2. Shipping and receiving</option>
+                    </select>
+                    <div id="warehouseShipFields" class="hidden">
+                        <input type="text" id="warehouseUnit" placeholder="Unit number" oninput="updateLabel()" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2 focus:border-blue-500 outline-none mb-2">
+                        <input type="text" id="warehouseShipLocation" placeholder="Where is shipping &amp; receiving located?" oninput="updateLabel()" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2 focus:border-blue-500 outline-none">
+                    </div>
+                </div>
+
+                <!-- Sender -->
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Sender Name / Company *</label>
+                    <input type="text" id="senderName" placeholder="e.g. Encore Canada" oninput="updateLabel()" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2 focus:border-blue-500 outline-none mb-2">
+                    <!-- Sender address autocomplete -->
+                    <div class="relative mb-2">
+                        <input type="text" id="senderAddressInput" placeholder="Start typing pickup address..." oninput="handleAddressInput('sender')" autocomplete="off" class="w-full border-2 border-blue-300 rounded-xl px-3 py-2 focus:border-blue-500 outline-none pr-8">
+                        <span class="absolute right-3 top-2.5 text-blue-400 text-sm">📍</span>
+                        <div id="senderSuggestions" class="hidden absolute z-50 w-full bg-white border-2 border-blue-200 rounded-xl shadow-xl mt-1 max-h-48 overflow-y-auto"></div>
+                    </div>
+                    <!-- Hidden fields populated by autocomplete -->
+                    <input type="hidden" id="senderAddress">
+                    <input type="hidden" id="senderCity">
+                    <input type="hidden" id="senderProvince">
+                    <input type="hidden" id="senderPostal">
+                    <input type="hidden" id="senderLat">
+                    <input type="hidden" id="senderLon">
+                    <!-- Confirmed address display -->
+                    <div id="senderAddressConfirmed" class="hidden bg-green-50 border border-green-200 rounded-xl px-3 py-2 text-sm text-green-800 mt-1"></div>
+                </div>
+
+                <!-- Recipient -->
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Recipient Name / Company *</label>
+                    <input type="text" id="recipientName" placeholder="e.g. Mario's Pizza Palace" oninput="updateLabel()" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2 focus:border-blue-500 outline-none mb-2">
+                    <!-- Recipient address autocomplete -->
+                    <div class="relative mb-2">
+                        <input type="text" id="recipientAddressInput" placeholder="Start typing delivery address..." oninput="handleAddressInput('recipient')" autocomplete="off" class="w-full border-2 border-blue-300 rounded-xl px-3 py-2 focus:border-blue-500 outline-none pr-8">
+                        <span class="absolute right-3 top-2.5 text-blue-400 text-sm">📍</span>
+                        <div id="recipientSuggestions" class="hidden absolute z-50 w-full bg-white border-2 border-blue-200 rounded-xl shadow-xl mt-1 max-h-48 overflow-y-auto"></div>
+                    </div>
+                    <!-- Hidden fields populated by autocomplete -->
+                    <input type="hidden" id="recipientAddress">
+                    <input type="hidden" id="recipientCity">
+                    <input type="hidden" id="recipientProvince">
+                    <input type="hidden" id="recipientPostal">
+                    <input type="hidden" id="recipientLat">
+                    <input type="hidden" id="recipientLon">
+                    <!-- Confirmed address display -->
+                    <div id="recipientAddressConfirmed" class="hidden bg-green-50 border border-green-200 rounded-xl px-3 py-2 text-sm text-green-800 mt-1"></div>
+                    <input type="text" id="recipientPhone" placeholder="Phone number" oninput="updateLabel()" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2 focus:border-blue-500 outline-none mt-2">
+                </div>
+
+                <!-- Special Instructions -->
+                <div class="mb-5">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Special Instructions</label>
+                    <textarea id="instructions" placeholder="e.g. Leave at back door, call upon arrival..." oninput="updateLabel()" rows="2" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2 focus:border-blue-500 outline-none resize-none"></textarea>
+                </div>
+
+                <!-- Auto-detected Zone Display (replaces manual dropdown) -->
+                <div id="zoneDetectedDisplay" class="hidden mb-4 bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+                    <div class="text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">🗺️ Delivery Zone (Auto-detected)</div>
+                    <div id="zoneDetectedLabel" class="text-base font-bold text-blue-900"></div>
+                    <div id="zoneDetectedDistance" class="text-xs text-blue-600 mt-0.5"></div>
+                </div>
+                <!-- Hidden zone value used by calculatePrice -->
+                <input type="hidden" id="deliveryZone" value="">
+
+                <!-- Live Price Calculator -->
+                <div id="priceCalculator" class="mb-5 bg-gradient-to-br from-gray-900 to-gray-800 text-white rounded-2xl p-5 shadow-lg">
+                    <div class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">💰 Live Price Estimate</div>
+                    <div id="priceBreakdown" class="space-y-1 text-sm mb-3">
+                        <div class="text-gray-400 italic text-xs">Select priority, service type, and delivery zone to see pricing.</div>
+                    </div>
+                    <div class="border-t border-gray-600 pt-3 mt-3">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-gray-200">Total (Standard)</span>
+                            <span class="text-2xl font-black text-white" id="priceTotal">—</span>
+                        </div>
+                        <div class="flex justify-between items-center mt-1">
+                            <span class="text-xs text-yellow-400">₿ Bitcoin (5% off)</span>
+                            <span class="text-lg font-bold text-yellow-400" id="priceBitcoin">—</span>
+                        </div>
+                    </div>
+                    <div class="text-xs text-gray-500 mt-2">* Estimate only. Final price confirmed at pickup. HST not included.</div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex gap-3">
+                    <button onclick="printLabel()" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+                        🖨️ Print Label
+                    </button>
+                    <button onclick="newOrder()" class="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-200 transition-colors flex items-center justify-center gap-2">
+                        ➕ New Order
+                    </button>
+                </div>
+            </div>
+
+            <!-- ===== LABEL PREVIEW ===== -->
+            <div>
+                <h2 class="text-xl font-bold mb-5 text-gray-800">🏷️ Label Preview</h2>
+
+                <!-- Order Number Display -->
+                <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-4 flex items-center justify-between">
+                    <div>
+                        <div class="text-xs font-bold text-blue-600 uppercase tracking-wider">Current Order Number</div>
+                        <div class="text-3xl font-black text-blue-800 font-mono" id="orderNumberDisplay">100000</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-gray-500">Date</div>
+                        <div class="text-sm font-bold text-gray-700" id="dateDisplay"></div>
+                    </div>
+                </div>
+
+                <!-- Label Preview Box -->
+                <div class="bg-white rounded-2xl shadow-lg p-4 flex justify-center">
+                    <div id="label-print-area" class="shadow-md">
+
+                        <!-- Label Header -->
+                        <div class="label-header">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <img src="sorse_logo_3_enhanced.png" alt="SORSE" style="height:36px; filter:grayscale(100%) contrast(200%);">
+                                <div style="font-size:6pt; color:#000; letter-spacing:1px; line-height:1.5;">SAME-DAY COURIER<br>sorse.ca</div>
+                            </div>
+                            <div id="labelPriorityBadge" class="label-priority-badge priority-b2b">SAMEDAY B2B</div>
+                        </div>
+
+                        <!-- Service Type Bar -->
+                        <div style="background:#f5f5f5; border-bottom:1.5px solid #000; padding:4px 10px; display:flex; justify-content:space-between; align-items:center;">
+                            <div class="label-service-box" id="labelServiceType">SOLO</div>
+                            <div style="font-size:8pt; color:#555;">
+                                Pieces: <strong id="labelPieces">1</strong>
+                                &nbsp;|&nbsp;
+                                Wt: <strong id="labelWeight">—</strong>
+                            </div>
+                            <div style="font-size:8pt; font-weight:700; color:#000;" id="labelDate"></div>
+                        </div>
+
+                        <!-- FROM Section -->
+                        <div class="label-section">
+                            <div class="label-section-title">FROM:</div>
+                            <div class="label-address" id="labelSenderName">Sender Name</div>
+                            <div style="font-size:9pt; color:#333;" id="labelSenderAddress">Pickup Address</div>
+                            <div style="font-size:9pt; color:#333;" id="labelSenderCity">City, Province</div>
+                        </div>
+
+                        <!-- TO Section (large, prominent) -->
+                        <div style="border-bottom:2.5px solid #000; padding:8px 10px; background:#fff;">
+                            <div class="label-section-title">SHIP TO:</div>
+                            <div style="font-size:15pt; font-weight:900; line-height:1.3;" id="labelRecipientName">Recipient Name</div>
+                            <div style="font-size:11pt; font-weight:700; color:#000;" id="labelRecipientAddress">Delivery Address</div>
+                            <div style="font-size:11pt; font-weight:700; color:#000;" id="labelRecipientCity">City, Province</div>
+                            <div style="font-size:13pt; font-weight:900; color:#000; letter-spacing:2px;" id="labelRecipientPostal">Postal Code</div>
+                            <div style="font-size:9pt; color:#333; margin-top:2px;" id="labelRecipientPhone"></div>
+                            <div style="font-size:8pt; font-weight:700; color:#000; margin-top:3px; border-top:1px solid #ccc; padding-top:3px;" id="labelLocationInfo"></div>
+                        </div>
+
+                        <!-- Barcode Section -->
+                        <div class="label-barcode-area">
+                            <svg id="labelBarcode"></svg>
+                            <div style="font-family:'Courier Prime',monospace; font-size:26pt; font-weight:700; letter-spacing:4px; text-align:center; margin-top:2px; color:#000;" id="labelOrderNumber">100000</div>
+                        </div>
+
+                        <!-- QR + Special Instructions -->
+                        <div style="border-bottom:1.5px solid #000; padding:6px 10px; display:flex; gap:8px; align-items:flex-start;">
+                            <div id="labelQR" style="flex-shrink:0;"></div>
+                            <div style="flex:1;">
+                                <div class="label-section-title">Special Instructions:</div>
+                                <div style="font-size:8.5pt; color:#333; line-height:1.4;" id="labelInstructions">—</div>
+                            </div>
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="label-footer">
+                            <div>
+                                <div style="font-weight:900; color:#000; font-size:9pt;">sorse.ca</div>
+                                <div style="color:#333; font-size:7pt;">Same-Day Courier</div>
+                            </div>
+                            <div style="text-align:center;">
+                                <div style="font-size:7pt; color:#555;">Proof of delivery at</div>
+                                <div style="font-size:7pt; font-weight:700; color:#000;">sorse.ca/track</div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="font-size:7pt; color:#555;">Powered by</div>
+                                <div style="font-size:8pt; font-weight:900; color:#000;">SORSE</div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+
+        <!-- Order History Table -->
+        <div class="bg-white rounded-2xl shadow-md p-6 mt-8">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold text-gray-800">📦 Order History</h2>
+                <button onclick="clearHistory()" class="text-xs text-red-400 hover:text-red-600 font-bold">Clear History</button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-gray-50 text-gray-600 text-xs uppercase">
+                            <th class="text-left px-3 py-2">Order #</th>
+                            <th class="text-left px-3 py-2">Date</th>
+                            <th class="text-left px-3 py-2">Priority</th>
+                            <th class="text-left px-3 py-2">Service</th>
+                            <th class="text-left px-3 py-2">Recipient</th>
+                            <th class="text-left px-3 py-2">Address</th>
+                            <th class="px-3 py-2">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orderHistoryBody">
+                        <tr>
+                            <td colspan="7" class="text-center text-gray-400 py-6 text-sm">No orders yet. Create your first label above.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== LOCATION TYPE HANDLING =====
+        function handleLocationChange() {
+            const loc = document.getElementById('locationType').value;
+            // Hide all sub-fields first
+            ['aptFields','officeFields','restaurantFields','warehouseFields'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            // Show relevant sub-fields
+            if (loc === 'APARTMENT') document.getElementById('aptFields').classList.remove('hidden');
+            if (loc === 'OFFICE') document.getElementById('officeFields').classList.remove('hidden');
+            if (loc === 'RESTAURANT') document.getElementById('restaurantFields').classList.remove('hidden');
+            if (loc === 'WAREHOUSE') document.getElementById('warehouseFields').classList.remove('hidden');
+            updateLabel();
+        }
+
+        function handleOfficeDeliveryChange() {
+            const val = document.getElementById('officeDelivery').value;
+            const mailroomField = document.getElementById('officeMailroomField');
+            if (val === 'MAIL ROOM') {
+                mailroomField.classList.remove('hidden');
+            } else {
+                mailroomField.classList.add('hidden');
+            }
+            updateLabel();
+        }
+
+        function handleWarehouseChange() {
+            const val = document.getElementById('warehouseDelivery').value;
+            const shipFields = document.getElementById('warehouseShipFields');
+            if (val === 'SHIPPING AND RECEIVING') {
+                shipFields.classList.remove('hidden');
+            } else {
+                shipFields.classList.add('hidden');
+            }
+            updateLabel();
+        }
+
+        function buildLocationInfo() {
+            const loc = document.getElementById('locationType').value;
+            if (!loc) return '';
+            let parts = [loc];
+
+            if (loc === 'APARTMENT') {
+                const aptNum = document.getElementById('aptNumber').value;
+                const buzz = document.getElementById('aptBuzz').value;
+                const delivery = document.getElementById('aptDelivery').value;
+                if (aptNum) parts.push(`Unit ${aptNum}`);
+                if (buzz) parts.push(`Buzz: ${buzz}`);
+                parts.push(delivery);
+            } else if (loc === 'OFFICE') {
+                const unit = document.getElementById('officeUnit').value;
+                const delivery = document.getElementById('officeDelivery').value;
+                if (unit) parts.push(`Suite ${unit}`);
+                parts.push(delivery);
+                if (delivery === 'MAIL ROOM') {
+                    const loc2 = document.getElementById('officeMailroomLocation').value;
+                    if (loc2) parts.push(`Mailroom: ${loc2}`);
+                }
+            } else if (loc === 'RESTAURANT') {
+                const type = document.getElementById('restaurantType').value;
+                const sr = document.getElementById('restaurantShipReceiving').value;
+                parts.push(type);
+                if (sr) parts.push(`S&R: ${sr}`);
+            } else if (loc === 'WAREHOUSE') {
+                const delivery = document.getElementById('warehouseDelivery').value;
+                parts.push(delivery);
+                if (delivery === 'SHIPPING AND RECEIVING') {
+                    const unit = document.getElementById('warehouseUnit').value;
+                    const loc2 = document.getElementById('warehouseShipLocation').value;
+                    if (unit) parts.push(`Unit ${unit}`);
+                    if (loc2) parts.push(`S&R: ${loc2}`);
+                }
+            }
+            return parts.join(' • ');
+        }
+
+        // ===== ORDER NUMBER MANAGEMENT =====
+        let currentOrderNumber = parseInt(localStorage.getItem('sorseOrderNumber') || '100000');
+        let orderHistory = JSON.parse(localStorage.getItem('sorseOrderHistory') || '[]');
+
+        function getNextOrderNumber() {
+            return currentOrderNumber;
+        }
+
+        function incrementOrderNumber() {
+            currentOrderNumber++;
+            localStorage.setItem('sorseOrderNumber', currentOrderNumber.toString());
+        }
+
+        // ===== DATE FORMATTING =====
+        function formatDate(date) {
+            const d = date || new Date();
+            return d.toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+
+        function formatDateShort(date) {
+            const d = date || new Date();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            const yy = String(d.getFullYear()).slice(2);
+            return `${mm}/${dd}/${yy}`;
+        }
+
+        // ===== PRIORITY COLORS =====
+        function getPriorityClass(priority) {
+            if (priority === 'RUSH') return 'priority-rush';
+            if (priority === 'PRIORITY') return 'priority-priority';
+            if (priority === 'SAMEDAY B2B') return 'priority-b2b';
+            if (priority === 'SAMEDAY B2C') return 'priority-b2c';
+            if (priority === 'EVENING EXPRESS') return 'priority-evening';
+            return 'priority-b2b';
+        }
+
+        function getPriorityColor(priority) {
+            if (priority === 'RUSH') return '#dc2626';
+            if (priority === 'PRIORITY') return '#ea580c';
+            if (priority === 'SAMEDAY B2B') return '#2563eb';
+            if (priority === 'SAMEDAY B2C') return '#16a34a';
+            if (priority === 'EVENING EXPRESS') return '#3730a3';
+            return '#2563eb';
+        }
+
+        // ===== UPDATE LABEL PREVIEW =====
+        function updateLabel() {
+            const priority = document.querySelector('input[name="priority"]:checked')?.value || 'SAMEDAY B2B';
+            const serviceType = document.getElementById('serviceType').value;
+            const pieces = document.getElementById('pieces').value || '1';
+            const weight = document.getElementById('weight').value;
+            const senderName = document.getElementById('senderName').value || 'Sender Name';
+            const senderAddress = document.getElementById('senderAddress').value || 'Pickup Address';
+            const senderCityVal = document.getElementById('senderCity').value || '';
+            const senderProvince = document.getElementById('senderProvince').value || '';
+            const senderPostal = document.getElementById('senderPostal').value || '';
+            const senderCity = [senderCityVal, senderProvince, senderPostal].filter(Boolean).join(', ') || 'City, Province, Postal Code';
+            const recipientName = document.getElementById('recipientName').value || 'Recipient Name';
+            const recipientAddress = document.getElementById('recipientAddress').value || 'Delivery Address';
+            const recipientCityVal = document.getElementById('recipientCity').value || '';
+            const recipientProvince = document.getElementById('recipientProvince').value || '';
+            const recipientPostal = document.getElementById('recipientPostal').value || '';
+            const recipientCity = [recipientCityVal, recipientProvince].filter(Boolean).join(', ') || 'City, Province';
+            const recipientPostalDisplay = recipientPostal || 'Postal Code';
+            const recipientPhone = document.getElementById('recipientPhone').value;
+            const instructions = document.getElementById('instructions').value;
+            const orderNum = getNextOrderNumber().toString();
+            const dateStr = formatDateShort(new Date());
+
+            // Update order number display
+            document.getElementById('orderNumberDisplay').textContent = orderNum;
+            document.getElementById('dateDisplay').textContent = formatDate(new Date());
+
+            // Update label fields
+            document.getElementById('labelPriorityBadge').textContent = priority;
+            document.getElementById('labelPriorityBadge').className = `label-priority-badge ${getPriorityClass(priority)}`;
+            document.getElementById('labelServiceType').textContent = serviceType;
+            document.getElementById('labelPieces').textContent = pieces;
+            document.getElementById('labelWeight').textContent = weight ? `${weight} lbs` : '—';
+            document.getElementById('labelDate').textContent = dateStr;
+            document.getElementById('labelSenderName').textContent = senderName;
+            document.getElementById('labelSenderAddress').textContent = senderAddress;
+            document.getElementById('labelSenderCity').textContent = senderCity;
+            document.getElementById('labelRecipientName').textContent = recipientName;
+            document.getElementById('labelRecipientAddress').textContent = recipientAddress;
+            document.getElementById('labelRecipientCity').textContent = recipientCity;
+            document.getElementById('labelRecipientPostal').textContent = recipientPostalDisplay.toUpperCase();
+            document.getElementById('labelRecipientPhone').textContent = recipientPhone ? `📞 ${recipientPhone}` : '';
+            document.getElementById('labelOrderNumber').textContent = orderNum;
+            document.getElementById('labelInstructions').textContent = instructions || '—';
+
+            // Location info on label
+            const locationInfo = buildLocationInfo();
+            document.getElementById('labelLocationInfo').textContent = locationInfo;
+
+            // Generate barcode
+            try {
+                JsBarcode("#labelBarcode", `SORSE-${orderNum}`, {
+                    format: "CODE128",
+                    width: 2,
+                    height: 50,
+                    displayValue: false,
+                    margin: 4,
+                    lineColor: "#000"
+                });
+            } catch(e) {}
+
+            // Generate QR code
+            const qrDiv = document.getElementById('labelQR');
+            qrDiv.innerHTML = '';
+            try {
+                new QRCode(qrDiv, {
+                    text: `https://sorse.ca/track/${orderNum}`,
+                    width: 56,
+                    height: 56,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+            } catch(e) {}
+        }
+
+        // ===== PRINT LABEL =====
+        function printLabel() {
+            const priority = document.querySelector('input[name="priority"]:checked')?.value || 'SAMEDAY B2B';
+            const serviceType = document.getElementById('serviceType').value;
+            const recipientName = document.getElementById('recipientName').value;
+            const recipientAddress = document.getElementById('recipientAddress').value;
+            const recipientCity = document.getElementById('recipientCity').value;
+            const orderNum = getNextOrderNumber();
+            const dateStr = formatDate(new Date());
+
+            if (!recipientName || !recipientAddress) {
+                alert('Please fill in at least the Recipient Name and Delivery Address before printing.');
+                return;
+            }
+
+            // Save to history
+            const order = {
+                orderNumber: orderNum,
+                date: dateStr,
+                priority: priority,
+                serviceType: serviceType,
+                recipientName: recipientName,
+                recipientAddress: `${recipientAddress}, ${recipientCity}`
+            };
+            orderHistory.unshift(order);
+            if (orderHistory.length > 50) orderHistory.pop();
+            localStorage.setItem('sorseOrderHistory', JSON.stringify(orderHistory));
+
+            // Increment order number for next order
+            incrementOrderNumber();
+
+            // Render history
+            renderHistory();
+
+            // Print
+            window.print();
+        }
+
+        // ===== NEW ORDER =====
+        function newOrder() {
+            document.getElementById('senderName').value = '';
+            document.getElementById('senderAddress').value = '';
+            document.getElementById('senderCity').value = '';
+            document.getElementById('recipientName').value = '';
+            document.getElementById('recipientAddress').value = '';
+            document.getElementById('recipientCity').value = '';
+            document.getElementById('recipientProvince').value = '';
+            document.getElementById('recipientPostal').value = '';
+            document.getElementById('senderCity').value = '';
+            document.getElementById('senderProvince').value = '';
+            document.getElementById('senderPostal').value = '';
+            document.getElementById('recipientPhone').value = '';
+            document.getElementById('instructions').value = '';
+            document.getElementById('pieces').value = '1';
+            document.getElementById('weight').value = '';
+            document.getElementById('serviceType').value = 'SOLO';
+            document.getElementById('locationType').value = '';
+            ['aptFields','officeFields','restaurantFields','warehouseFields'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.querySelector('input[name="priority"][value="SAMEDAY B2B"]').checked = true;
+            updateLabel();
+        }
+
+        // ===== REPRINT FROM HISTORY =====
+        function reprintOrder(index) {
+            const order = orderHistory[index];
+            if (!order) return;
+            alert(`Reprinting Order #${order.orderNumber}\n${order.recipientName}\n${order.recipientAddress}`);
+            window.print();
+        }
+
+        // ===== CLEAR HISTORY =====
+        function clearHistory() {
+            if (confirm('Clear all order history?')) {
+                orderHistory = [];
+                localStorage.setItem('sorseOrderHistory', '[]');
+                renderHistory();
+            }
+        }
+
+        // ===== RENDER ORDER HISTORY =====
+        function renderHistory() {
+            const tbody = document.getElementById('orderHistoryBody');
+            if (orderHistory.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-gray-400 py-6 text-sm">No orders yet. Create your first label above.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = orderHistory.map((o, i) => `
+                <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="px-3 py-2 font-mono font-bold text-blue-700">${o.orderNumber}</td>
+                    <td class="px-3 py-2 text-gray-600 text-xs">${o.date}</td>
+                    <td class="px-3 py-2">
+                        <span class="px-2 py-0.5 rounded text-xs font-bold text-white" style="background:${getPriorityColor(o.priority)}">${o.priority}</span>
+                    </td>
+                    <td class="px-3 py-2 text-xs font-bold text-gray-700">${o.serviceType}</td>
+                    <td class="px-3 py-2 font-bold text-gray-800">${o.recipientName}</td>
+                    <td class="px-3 py-2 text-gray-500 text-xs">${o.recipientAddress}</td>
+                    <td class="px-3 py-2 text-center">
+                        <button onclick="reprintOrder(${i})" class="text-blue-500 hover:text-blue-700 text-xs font-bold">🖨️ Reprint</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // ===== ADDRESS AUTOCOMPLETE & ZONE DETECTION =====
+        // SORSE base coordinates: L5B 1T1, Mississauga, ON
+        const SORSE_BASE_LAT = 43.5890;
+        const SORSE_BASE_LON = -79.6441;
+
+        // Debounce timers
+        let senderTimer = null;
+        let recipientTimer = null;
+
+        function handleAddressInput(type) {
+            const inputId = type === 'sender' ? 'senderAddressInput' : 'recipientAddressInput';
+            const query = document.getElementById(inputId).value.trim();
+            if (type === 'sender') {
+                clearTimeout(senderTimer);
+                if (query.length < 4) { hideSuggestions('sender'); return; }
+                senderTimer = setTimeout(() => fetchSuggestions(type, query), 400);
+            } else {
+                clearTimeout(recipientTimer);
+                if (query.length < 4) { hideSuggestions('recipient'); return; }
+                recipientTimer = setTimeout(() => fetchSuggestions(type, query), 400);
+            }
+        }
+
+        async function fetchSuggestions(type, query) {
+            const suggestionsId = type === 'sender' ? 'senderSuggestions' : 'recipientSuggestions';
+            const suggestionsEl = document.getElementById(suggestionsId);
+            try {
+                const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query + ', Ontario, Canada')}&format=json&addressdetails=1&limit=6&countrycodes=ca`;
+                const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+                const data = await res.json();
+                if (!data.length) { hideSuggestions(type); return; }
+                suggestionsEl.innerHTML = data.map((item, i) => `
+                    <div class="px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm border-b border-gray-100 last:border-0"
+                         onclick="selectAddress('${type}', ${i})" data-index="${i}">
+                        <span class="font-medium">${item.display_name.split(',').slice(0,3).join(',')}</span>
+                        <span class="text-gray-400 text-xs block">${item.display_name.split(',').slice(3).join(',').trim()}</span>
+                    </div>`).join('');
+                suggestionsEl._data = data;
+                suggestionsEl.classList.remove('hidden');
+            } catch(e) {
+                hideSuggestions(type);
+            }
+        }
+
+        function selectAddress(type, index) {
+            const suggestionsId = type === 'sender' ? 'senderSuggestions' : 'recipientSuggestions';
+            const suggestionsEl = document.getElementById(suggestionsId);
+            const item = suggestionsEl._data[index];
+            if (!item) return;
+
+            const addr = item.address;
+            const street = [addr.house_number, addr.road].filter(Boolean).join(' ');
+            const city = addr.city || addr.town || addr.village || addr.municipality || '';
+            const province = addr.state || 'ON';
+            const postal = (addr.postcode || '').toUpperCase();
+            const lat = parseFloat(item.lat);
+            const lon = parseFloat(item.lon);
+            const displayName = item.display_name.split(',').slice(0,4).join(',').trim();
+
+            if (type === 'sender') {
+                document.getElementById('senderAddressInput').value = displayName;
+                document.getElementById('senderAddress').value = street;
+                document.getElementById('senderCity').value = city;
+                document.getElementById('senderProvince').value = province;
+                document.getElementById('senderPostal').value = postal;
+                document.getElementById('senderLat').value = lat;
+                document.getElementById('senderLon').value = lon;
+                const confirmed = document.getElementById('senderAddressConfirmed');
+                confirmed.textContent = `✅ ${street}, ${city}, ${province} ${postal}`;
+                confirmed.classList.remove('hidden');
+            } else {
+                document.getElementById('recipientAddressInput').value = displayName;
+                document.getElementById('recipientAddress').value = street;
+                document.getElementById('recipientCity').value = city;
+                document.getElementById('recipientProvince').value = province;
+                document.getElementById('recipientPostal').value = postal;
+                document.getElementById('recipientLat').value = lat;
+                document.getElementById('recipientLon').value = lon;
+                const confirmed = document.getElementById('recipientAddressConfirmed');
+                confirmed.textContent = `✅ ${street}, ${city}, ${province} ${postal}`;
+                confirmed.classList.remove('hidden');
+                // Auto-detect zone based on recipient address
+                detectZoneAndPrice(lat, lon);
+            }
+
+            hideSuggestions(type);
+            updateLabel();
+        }
+
+        function hideSuggestions(type) {
+            const id = type === 'sender' ? 'senderSuggestions' : 'recipientSuggestions';
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        // Haversine formula: distance in km between two lat/lon points
+        function haversineKm(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        function detectZoneAndPrice(lat, lon) {
+            const distKm = haversineKm(SORSE_BASE_LAT, SORSE_BASE_LON, lat, lon);
+            let zone, zoneLabel, zoneColor;
+
+            if (distKm <= 25) {
+                zone = 'ZONE1';
+                zoneLabel = '🟢 Zone 1 (0–25 km)';
+                zoneColor = 'text-green-700';
+            } else if (distKm <= 50) {
+                zone = 'ZONE2';
+                zoneLabel = '🟡 Zone 2 (25–50 km)';
+                zoneColor = 'text-yellow-700';
+            } else if (distKm <= 75) {
+                zone = 'ZONE3';
+                zoneLabel = '🟠 Zone 3 (50–75 km)';
+                zoneColor = 'text-orange-600';
+            } else if (distKm <= 100) {
+                zone = 'ZONE4';
+                zoneLabel = '🔴 Zone 4 (75–100 km)';
+                zoneColor = 'text-red-600';
+            } else if (distKm <= 125) {
+                zone = 'ZONE5';
+                zoneLabel = '🟣 Zone 5 (100–125 km)';
+                zoneColor = 'text-purple-700';
+            } else if (distKm <= 150) {
+                zone = 'ZONE6';
+                zoneLabel = '⚫ Zone 6 (125–150 km)';
+                zoneColor = 'text-gray-700';
+            } else if (distKm <= 175) {
+                zone = 'ZONE7';
+                zoneLabel = '🟤 Zone 7 (150–175 km)';
+                zoneColor = 'text-amber-800';
+            } else {
+                zone = 'ZONE8';
+                zoneLabel = '🔵 Zone 8 (175–200 km)';
+                zoneColor = 'text-blue-800';
+            }
+
+            document.getElementById('deliveryZone').value = zone;
+            document.getElementById('zoneDetectedLabel').textContent = zoneLabel;
+            document.getElementById('zoneDetectedDistance').textContent = `Approx. ${Math.round(distKm)} km from SORSE base (Mississauga)`;
+            document.getElementById('zoneDetectedDisplay').classList.remove('hidden');
+
+            calculatePrice();
+        }
+
+        // Close suggestions when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('#senderAddressInput') && !e.target.closest('#senderSuggestions')) hideSuggestions('sender');
+            if (!e.target.closest('#recipientAddressInput') && !e.target.closest('#recipientSuggestions')) hideSuggestions('recipient');
+        });
+
+        // ===== PRICE CALCULATOR =====
+        function calculatePrice() {
+            const priority = document.querySelector('input[name="priority"]:checked')?.value || '';
+            const serviceType = document.getElementById('serviceType').value || 'SOLO';
+            const pieces = parseInt(document.getElementById('pieces').value) || 1;
+            const weight = parseFloat(document.getElementById('weight').value) || 0;
+            const zone = document.getElementById('deliveryZone').value;
+
+            const breakdownEl = document.getElementById('priceBreakdown');
+            const totalEl = document.getElementById('priceTotal');
+            const btcEl = document.getElementById('priceBitcoin');
+
+            if (!priority || !zone) {
+                breakdownEl.innerHTML = '<div class="text-gray-400 italic text-xs">Select priority, service type, and delivery zone to see pricing.</div>';
+                totalEl.textContent = '—';
+                btcEl.textContent = '—';
+                return;
+            }
+
+            // Base rates by zone (8-zone structure from L5B 1T1 Mississauga)
+            const zoneBaseRates = {
+                ZONE1: { RUSH: 39, PRIORITY: 23, 'SAMEDAY B2B': 20, 'SAMEDAY B2C': 20, 'EVENING EXPRESS': 60 },
+                ZONE2: { RUSH: 52, PRIORITY: 35, 'SAMEDAY B2B': 26, 'SAMEDAY B2C': 26, 'EVENING EXPRESS': 120 },
+                ZONE3: { RUSH: 73, PRIORITY: 50, 'SAMEDAY B2B': 38, 'SAMEDAY B2C': 38, 'EVENING EXPRESS': 180 },
+                ZONE4: { RUSH: 105, PRIORITY: 74, 'SAMEDAY B2B': 59, 'SAMEDAY B2C': 59, 'EVENING EXPRESS': 240 },
+                ZONE5: { RUSH: 144, PRIORITY: 102, 'SAMEDAY B2B': 83, 'SAMEDAY B2C': 83, 'EVENING EXPRESS': 300 },
+                ZONE6: { RUSH: 191, PRIORITY: 138, 'SAMEDAY B2B': 114, 'SAMEDAY B2C': 114, 'EVENING EXPRESS': 360 },
+                ZONE7: { RUSH: 238, PRIORITY: 174, 'SAMEDAY B2B': 145, 'SAMEDAY B2C': 145, 'EVENING EXPRESS': 420 },
+                ZONE8: { RUSH: 285, PRIORITY: 210, 'SAMEDAY B2B': 176, 'SAMEDAY B2C': 176, 'EVENING EXPRESS': 480 }
+            };
+
+            // Service type multipliers (extra per parcel group)
+            const serviceMultiplier = {
+                SOLO: 1.0, DOUBLE: 1.4, MULTI: 1.9, 'LARGE MULTI': 2.6, BULK: 3.5
+            };
+
+            // Service type max parcels
+            const serviceMax = { SOLO: 2, DOUBLE: 4, MULTI: 10, 'LARGE MULTI': 20, BULK: 40 };
+
+            const baseRate = zoneBaseRates[zone][priority] || 15;
+            const svcMultiplier = serviceMultiplier[serviceType] || 1.0;
+            let subtotal = baseRate * svcMultiplier;
+
+            // Extra piece surcharge (beyond service type base)
+            const maxPieces = serviceMax[serviceType] || 2;
+            let extraPieceSurcharge = 0;
+            if (pieces > maxPieces) {
+                extraPieceSurcharge = (pieces - maxPieces) * 2.50;
+            }
+
+            // Weight surcharge (over 10 lbs)
+            let weightSurcharge = 0;
+            if (weight > 10) weightSurcharge = Math.ceil((weight - 10) / 5) * 2.00;
+            if (weight > 50) weightSurcharge += Math.ceil((weight - 50) / 10) * 3.00;
+
+            // No fuel surcharge — SORSE operates 100% electric vehicles
+            const rawTotal = subtotal + extraPieceSurcharge + weightSurcharge;
+
+            // Minimum charges
+            const isOutOfTown = false; // Flat $20 minimum for all zones
+            const minimum = 20;
+            const total = Math.max(rawTotal, minimum);
+            const minimumApplied = total > rawTotal;
+            const btcTotal = total * 0.95;
+
+            const zoneLabels = {
+                ZONE1: 'Zone 1 (0–25 km)',
+                ZONE2: 'Zone 2 (25–50 km)',
+                ZONE3: 'Zone 3 (50–75 km)',
+                ZONE4: 'Zone 4 (75–100 km)',
+                ZONE5: 'Zone 5 (100–125 km)',
+                ZONE6: 'Zone 6 (125–150 km)',
+                ZONE7: 'Zone 7 (150–175 km)',
+                ZONE8: 'Zone 8 (175–200 km)'
+            };
+
+            const rows = [
+                { label: `Base Rate (${priority} · ${zoneLabels[zone]})`, amount: baseRate.toFixed(2) },
+                { label: `Service Type (${serviceType} ×${svcMultiplier})`, amount: (baseRate * (svcMultiplier - 1)).toFixed(2), hide: svcMultiplier === 1.0 },
+                { label: `Extra pieces surcharge (${pieces} pcs)`, amount: extraPieceSurcharge.toFixed(2), hide: extraPieceSurcharge === 0 },
+                { label: `Weight surcharge (${weight} lbs)`, amount: weightSurcharge.toFixed(2), hide: weightSurcharge === 0 },
+                { label: '⚡ No fuel surcharge (100% electric fleet)', amount: '$0.00' },
+                minimumApplied ? { label: 'Minimum delivery charge ($20 minimum)', amount: `$${minimum.toFixed(2)}` } : null
+            ];
+
+            breakdownEl.innerHTML = rows
+                .filter(r => r && !r.hide)
+                .map(r => `
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-300">${r.label}</span>
+                        <span class="font-bold text-white">$${r.amount}</span>
+                    </div>`)
+                .join('');
+
+            totalEl.textContent = `$${Math.round(total)}`;
+            btcEl.textContent = `$${Math.round(btcTotal)}`;
+        }
+
+        // ===== INIT =====
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('dateDisplay').textContent = formatDate(new Date());
+            document.getElementById('orderNumberDisplay').textContent = getNextOrderNumber();
+            updateLabel();
+            renderHistory();
+            // Hook calculatePrice into all priority radio buttons
+            document.querySelectorAll('input[name="priority"]').forEach(r => r.addEventListener('change', calculatePrice));
+            document.getElementById('serviceType').addEventListener('change', calculatePrice);
+            document.getElementById('pieces').addEventListener('input', calculatePrice);
+            document.getElementById('weight').addEventListener('input', calculatePrice);
+        });
+    </script>
+</body>
+</html>

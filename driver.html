@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SORSE — Driver App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+        * { box-sizing: border-box; }
+        html, body { height: 100%; margin: 0; padding: 0; font-family: 'Inter', sans-serif; background: #0f172a; color: #f1f5f9; }
+
+        .sorse-gradient { background: linear-gradient(135deg, #1a3a6b 0%, #f97316 100%); }
+
+        /* Bottom nav */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #1e293b; border-top: 1px solid #334155; z-index: 500; }
+
+        /* Stop card */
+        .stop-card { border-left: 4px solid #374151; transition: all 0.2s; }
+        .stop-card.active { border-left-color: #f97316; background: #1e293b; }
+        .stop-card.done   { border-left-color: #15803d; opacity: 0.6; }
+        .stop-card.failed { border-left-color: #b91c1c; opacity: 0.6; }
+        @keyframes pulse-orange {
+            0%,100% { box-shadow: 0 0 0 0 rgba(249,115,22,0.4); }
+            50%      { box-shadow: 0 0 0 8px rgba(249,115,22,0); }
+        }
+        .stop-card.active { animation: pulse-orange 2s infinite; }
+
+        /* Route connector */
+        .route-connector { width: 2px; background: #334155; margin-left: 19px; height: 16px; }
+        .route-connector.done { background: #15803d; }
+
+        /* Modal */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 1000; display: flex; align-items: flex-end; justify-content: center; }
+        .modal-sheet { background: #1e293b; border-radius: 20px 20px 0 0; width: 100%; max-width: 600px; padding: 24px; max-height: 90vh; overflow-y: auto; }
+
+        /* Autocomplete */
+        .autocomplete-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: #1e293b; border: 1px solid #334155; border-radius: 8px; z-index: 2000; max-height: 200px; overflow-y: auto; }
+        .autocomplete-item { padding: 10px 14px; cursor: pointer; font-size: 13px; border-bottom: 1px solid #334155; }
+        .autocomplete-item:hover { background: #334155; }
+        .autocomplete-item:last-child { border-bottom: none; }
+
+        /* MAP FULL SCREEN */
+        #mapContainer { position: relative; width: 100%; background: #1e293b; }
+        #routeMap { width: 100%; height: 100%; }
+
+        /* Map header overlay */
+        #mapHeader {
+            position: absolute; top: 0; left: 0; right: 0; z-index: 400;
+            background: linear-gradient(135deg, #1a3a6b 0%, #b45309 100%);
+            padding: 10px 16px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+
+        /* Custom numbered pin */
+        .stop-pin {
+            width: 32px; height: 40px;
+            display: flex; align-items: flex-start; justify-content: center;
+        }
+        .pin-inner {
+            width: 28px; height: 28px; border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 900; font-size: 11px; color: white;
+            border: 2px solid white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+        }
+        .pin-inner span { transform: rotate(45deg); }
+
+        /* Leaflet popup dark */
+        .leaflet-popup-content-wrapper { background: #1e293b; color: #f1f5f9; border-radius: 12px; border: 1px solid #334155; }
+        .leaflet-popup-tip { background: #1e293b; }
+        .leaflet-popup-content { margin: 12px 16px; font-family: 'Inter', sans-serif; }
+
+        /* Tab content areas */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Scrollable stop list */
+        #routeTab { overflow-y: auto; }
+    </style>
+</head>
+<body class="flex flex-col" style="height:100vh; overflow:hidden;">
+
+    <!-- ===== TOP HEADER ===== -->
+    <div class="sorse-gradient px-4 pt-8 pb-3 shadow-lg flex-shrink-0">
+        <div class="flex items-center justify-between max-w-lg mx-auto">
+            <div class="flex items-center gap-3">
+                <img src="sorse_logo_3_enhanced.png" alt="SORSE" class="h-8 brightness-0 invert">
+                <div>
+                    <div class="text-xs text-orange-200 font-semibold uppercase tracking-widest">Driver App</div>
+                    <div class="text-white font-black text-base leading-tight" id="driverNameDisplay">Driver</div>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="text-right">
+                    <div class="text-xs text-orange-200">Today</div>
+                    <div class="text-white font-bold text-xs" id="todayDate">—</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats bar -->
+        <div class="flex gap-2 mt-3 max-w-lg mx-auto">
+            <div class="flex-1 bg-white/10 rounded-xl p-2 text-center">
+                <div class="text-xl font-black text-white" id="statTotal">0</div>
+                <div class="text-xs text-orange-200">Stops</div>
+            </div>
+            <div class="flex-1 bg-white/10 rounded-xl p-2 text-center">
+                <div class="text-xl font-black text-green-300" id="statDone">0</div>
+                <div class="text-xs text-orange-200">Done</div>
+            </div>
+            <div class="flex-1 bg-white/10 rounded-xl p-2 text-center">
+                <div class="text-xl font-black text-orange-300" id="statRemaining">0</div>
+                <div class="text-xs text-orange-200">Left</div>
+            </div>
+            <div class="flex-1 bg-white/10 rounded-xl p-2 text-center">
+                <div class="text-xl font-black text-yellow-300" id="statEarnings">$0</div>
+                <div class="text-xs text-orange-200">Earned</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MAIN CONTENT AREA (fills remaining height) ===== -->
+    <div class="flex-1 overflow-hidden relative">
+
+        <!-- ===== MAP TAB ===== -->
+        <div id="mapTab" class="tab-content active" style="height:100%; display:flex; flex-direction:column;">
+            <!-- Map header -->
+            <div style="background:linear-gradient(135deg,#1e3a5f,#92400e); padding:10px 16px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; z-index:10;">
+                <div class="text-white font-black text-sm tracking-wider uppercase">🗺️ Optimized Route</div>
+                <div class="flex gap-2">
+                    <button onclick="reoptimizeRoute()" class="text-xs bg-orange-500 hover:bg-orange-600 text-white font-bold px-3 py-1.5 rounded-lg transition-colors">
+                        🔄 Re-optimize
+                    </button>
+                    <button onclick="fitMapToBounds()" class="text-xs bg-slate-700 hover:bg-slate-600 text-white font-bold px-3 py-1.5 rounded-lg transition-colors">
+                        ⊞ Fit All
+                    </button>
+                </div>
+            </div>
+            <!-- The map itself -->
+            <div id="routeMap" style="flex:1; min-height:0;"></div>
+            <!-- Tap to open stop list -->
+            <div onclick="showTab('route')" style="background:#1e293b; border-top:1px solid #334155; padding:12px 16px; text-align:center; cursor:pointer; flex-shrink:0;">
+                <span class="text-blue-400 font-bold text-sm">📋 Tap to open Stop List</span>
+            </div>
+        </div>
+
+        <!-- ===== ROUTE TAB ===== -->
+        <div id="routeTab" class="tab-content" style="height:100%; overflow-y:auto; padding-bottom:8px;">
+            <!-- Home base bar -->
+            <div class="bg-slate-800 border-b border-slate-700 px-4 py-3 max-w-lg mx-auto">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="text-green-400">🏠</span>
+                        <div>
+                            <div class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Starting Point</div>
+                            <div class="text-sm text-white font-bold" id="homeBaseDisplay">2547 Rugby Rd, Mississauga ON</div>
+                        </div>
+                    </div>
+                    <button onclick="openHomeBaseModal()" class="text-xs bg-slate-700 hover:bg-slate-600 text-orange-400 font-bold px-3 py-1.5 rounded-lg">✏️ Change</button>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="px-4 py-3 max-w-lg mx-auto">
+                <div class="flex gap-2">
+                    <button onclick="openAddStopModal()" class="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold py-2.5 rounded-xl text-sm transition-colors">➕ Add Stop</button>
+                    <button onclick="optimizeRoute()" id="optimizeBtn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-sm transition-colors">🗺️ Optimize</button>
+                    <button onclick="openImportModal()" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 px-4 rounded-xl text-sm transition-colors">📋</button>
+                </div>
+            </div>
+
+            <!-- Active stop banner -->
+            <div id="activeStopBanner" class="hidden px-4 mb-2 max-w-lg mx-auto">
+                <div class="bg-orange-500/20 border border-orange-500/40 rounded-2xl p-4">
+                    <div class="flex items-center justify-between mb-1">
+                        <div class="text-xs font-bold text-orange-400 uppercase tracking-wider">🚗 Current Stop</div>
+                        <div class="text-xs text-slate-400" id="activeStopNum">Stop 1 of 5</div>
+                    </div>
+                    <div class="text-white font-bold text-base" id="activeStopName">—</div>
+                    <div class="text-slate-300 text-sm" id="activeStopAddr">—</div>
+                    <div class="flex gap-2 mt-3">
+                        <a id="activeNavLink" href="#" target="_blank" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-sm text-center">🧭 Navigate</a>
+                        <button onclick="markDelivered()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 rounded-xl text-sm">✅ Delivered</button>
+                        <button onclick="markFailed()" class="bg-red-700 hover:bg-red-800 text-white font-bold py-2.5 px-3 rounded-xl text-sm">✗</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stop list -->
+            <div class="px-4 max-w-lg mx-auto">
+                <div id="emptyState" class="text-center py-12">
+                    <div class="text-5xl mb-3">📦</div>
+                    <div class="text-slate-400 font-bold text-lg mb-2">No stops yet</div>
+                    <div class="text-slate-500 text-sm mb-5">Add stops manually or import from today's orders</div>
+                    <button onclick="loadSampleRoute()" class="bg-slate-700 hover:bg-slate-600 text-white font-bold px-6 py-3 rounded-xl text-sm">📋 Load Sample Route</button>
+                </div>
+                <div id="stopList" class="space-y-1 pb-4"></div>
+            </div>
+        </div>
+
+        <!-- ===== HISTORY TAB ===== -->
+        <div id="historyTab" class="tab-content" style="height:100%; overflow-y:auto;">
+            <div class="px-4 max-w-lg mx-auto pb-4">
+                <h2 class="text-lg font-bold text-white mt-4 mb-3">Delivery History</h2>
+                <div id="historyList" class="space-y-2">
+                    <div class="text-slate-500 text-sm text-center py-8">No completed deliveries yet today.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== EARNINGS TAB ===== -->
+        <div id="earningsTab" class="tab-content" style="height:100%; overflow-y:auto;">
+            <div class="px-4 max-w-lg mx-auto pb-4">
+                <h2 class="text-lg font-bold text-white mt-4 mb-3">Today's Earnings</h2>
+                <div class="bg-slate-800 rounded-2xl p-6 text-center mb-4">
+                    <div class="text-5xl font-black text-green-400 mb-1" id="earningsTotal">$0.00</div>
+                    <div class="text-slate-400 text-sm">Total Earned Today</div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div class="bg-slate-800 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-black text-white" id="earningsDeliveries">0</div>
+                        <div class="text-xs text-slate-400">Deliveries</div>
+                    </div>
+                    <div class="bg-slate-800 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-black text-white" id="earningsAvg">$0</div>
+                        <div class="text-xs text-slate-400">Avg per Stop</div>
+                    </div>
+                </div>
+                <div id="earningsBreakdown" class="space-y-2"></div>
+            </div>
+        </div>
+
+        <!-- ===== SETTINGS TAB ===== -->
+        <div id="settingsTab" class="tab-content" style="height:100%; overflow-y:auto;">
+            <div class="px-4 max-w-lg mx-auto pb-4">
+                <h2 class="text-lg font-bold text-white mt-4 mb-3">Driver Settings</h2>
+                <div class="bg-slate-800 rounded-2xl p-5 mb-4">
+                    <h3 class="text-sm font-bold text-slate-300 uppercase tracking-wider mb-4">Driver Profile</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Driver Name</label>
+                            <input type="text" id="settingDriverName" placeholder="Your name" class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-white text-sm focus:border-orange-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Driver ID / Callsign</label>
+                            <input type="text" id="settingDriverId" placeholder="e.g. DRV-001" class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-white text-sm focus:border-orange-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Vehicle</label>
+                            <input type="text" id="settingVehicle" placeholder="e.g. Tesla Model 3 — White" class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-white text-sm focus:border-orange-500 outline-none">
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-slate-800 rounded-2xl p-5 mb-4">
+                    <h3 class="text-sm font-bold text-slate-300 uppercase tracking-wider mb-4">Home Base / Starting Point</h3>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Default Start Address</label>
+                        <input type="text" id="settingHomeBase" value="2547 Rugby Rd, Mississauga ON L5B 1T1" class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-white text-sm focus:border-orange-500 outline-none">
+                    </div>
+                </div>
+                <div class="bg-slate-800 rounded-2xl p-5 mb-4">
+                    <h3 class="text-sm font-bold text-slate-300 uppercase tracking-wider mb-4">Navigation</h3>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Preferred Maps App</label>
+                        <select id="settingMapsApp" class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-white text-sm focus:border-orange-500 outline-none">
+                            <option value="google">Google Maps</option>
+                            <option value="apple">Apple Maps</option>
+                            <option value="waze">Waze</option>
+                        </select>
+                    </div>
+                </div>
+                <button onclick="saveSettings()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl text-sm mb-4">💾 Save Settings</button>
+                <div class="text-center"><a href="index.html" class="text-slate-500 text-xs hover:text-slate-300">← Back to SORSE Website</a></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== BOTTOM NAVIGATION ===== -->
+    <div class="bottom-nav">
+        <div class="flex max-w-lg mx-auto">
+            <button onclick="showTab('map')" id="tab-map" class="flex-1 py-2.5 text-center text-xs font-bold text-orange-400 border-t-2 border-orange-400">
+                <div class="text-lg mb-0.5">🗺️</div>Map
+            </button>
+            <button onclick="showTab('route')" id="tab-route" class="flex-1 py-2.5 text-center text-xs font-bold text-slate-500 border-t-2 border-transparent">
+                <div class="text-lg mb-0.5">📍</div>Stops
+            </button>
+            <button onclick="showTab('history')" id="tab-history" class="flex-1 py-2.5 text-center text-xs font-bold text-slate-500 border-t-2 border-transparent">
+                <div class="text-lg mb-0.5">📋</div>History
+            </button>
+            <button onclick="showTab('earnings')" id="tab-earnings" class="flex-1 py-2.5 text-center text-xs font-bold text-slate-500 border-t-2 border-transparent">
+                <div class="text-lg mb-0.5">💰</div>Earnings
+            </button>
+            <button onclick="showTab('settings')" id="tab-settings" class="flex-1 py-2.5 text-center text-xs font-bold text-slate-500 border-t-2 border-transparent">
+                <div class="text-lg mb-0.5">⚙️</div>Settings
+            </button>
+        </div>
+    </div>
+
+    <!-- ===== MODALS ===== -->
+
+    <!-- Home Base Modal -->
+    <div id="homeBaseModal" class="modal-overlay hidden" onclick="closeHomeBaseModal(event)">
+        <div class="modal-sheet">
+            <div class="flex items-center justify-between mb-5">
+                <h3 class="text-lg font-bold text-white">🏠 Change Starting Point</h3>
+                <button onclick="closeHomeBaseModal()" class="text-slate-400 hover:text-white text-2xl leading-none">×</button>
+            </div>
+            <div class="relative mb-4">
+                <input type="text" id="homeBaseInput" placeholder="Enter your starting address..."
+                    class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-white text-sm focus:border-orange-500 outline-none"
+                    oninput="searchHomeBase(this.value)" autocomplete="off">
+                <div id="homeBaseSuggestions" class="autocomplete-dropdown hidden"></div>
+            </div>
+            <div class="space-y-2 mb-4">
+                <div class="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-2">Quick Select</div>
+                <button onclick="setHomeBase('2547 Rugby Rd, Mississauga ON L5B 1T1', 43.5890, -79.6441)" class="w-full text-left bg-slate-700 hover:bg-slate-600 rounded-xl p-3 text-sm text-white transition-colors">
+                    🏠 <span class="font-bold">Home Base</span> — 2547 Rugby Rd, Mississauga ON L5B 1T1
+                </button>
+            </div>
+            <button onclick="confirmHomeBase()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl text-sm">✅ Set Starting Point</button>
+        </div>
+    </div>
+
+    <!-- Add Stop Modal -->
+    <div id="addStopModal" class="modal-overlay hidden" onclick="closeAddStopModal(event)">
+        <div class="modal-sheet">
+            <div class="flex items-center justify-between mb-5">
+                <h3 class="text-lg font-bold text-white">➕ Add Delivery Stop</h3>
+                <button onclick="closeAddStopModal()" class="text-slate-400 hover:text-white text-2xl leading-none">×</button>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Order # (optional)</label>
+                    <input type="text" id="newStopOrder" placeholder="e.g. 100042" class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-white text-sm focus:border-orange-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Recipient Name *</label>
+                    <input type="text" id="newStopName" placeholder="Customer name or business" class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-white text-sm focus:border-orange-500 outline-none">
+                </div>
+                <div class="relative">
+                    <label class="block text-xs text-slate-400 mb-1">Delivery Address *</label>
+                    <input type="text" id="newStopAddress" placeholder="Start typing address..." autocomplete="off"
+                        class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-white text-sm focus:border-orange-500 outline-none"
+                        oninput="searchStopAddress(this.value)">
+                    <div id="stopAddressSuggestions" class="autocomplete-dropdown hidden"></div>
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Postal Code (optional)</label>
+                    <input type="text" id="newStopPostal" placeholder="e.g. M5V 2T6" class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-white text-sm focus:border-orange-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Phone (optional)</label>
+                    <input type="tel" id="newStopPhone" placeholder="416-555-0000" class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-white text-sm focus:border-orange-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Delivery Note (optional)</label>
+                    <input type="text" id="newStopNote" placeholder="e.g. Leave at door, buzz 204" class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-white text-sm focus:border-orange-500 outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Priority</label>
+                        <select id="newStopPriority" class="w-full bg-slate-700 border border-slate-600 rounded-xl px-3 py-3 text-white text-sm focus:border-orange-500 outline-none">
+                            <option value="SAMEDAY B2B">Sameday B2B</option>
+                            <option value="SAMEDAY B2C">Sameday B2C</option>
+                            <option value="RUSH">Rush</option>
+                            <option value="PRIORITY">Priority</option>
+                            <option value="EVENING EXPRESS">Evening Express</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Amount ($)</label>
+                        <input type="number" id="newStopAmount" placeholder="0.00" min="0" step="1" class="w-full bg-slate-700 border border-slate-600 rounded-xl px-3 py-3 text-white text-sm focus:border-orange-500 outline-none">
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-5">
+                <button onclick="closeAddStopModal()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-xl text-sm">Cancel</button>
+                <button onclick="addStop()" class="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl text-sm">Add Stop</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Modal -->
+    <div id="importModal" class="modal-overlay hidden" onclick="closeImportModal(event)">
+        <div class="modal-sheet">
+            <div class="flex items-center justify-between mb-5">
+                <h3 class="text-lg font-bold text-white">📋 Import Today's Orders</h3>
+                <button onclick="closeImportModal()" class="text-slate-400 hover:text-white text-2xl leading-none">×</button>
+            </div>
+            <p class="text-slate-400 text-sm mb-4">Each line: <code class="text-orange-400 bg-slate-700 px-1 rounded">Name | Address | Priority | Amount</code></p>
+            <textarea id="importText" rows="7" placeholder="John Smith | 123 Main St Toronto ON | RUSH | 39&#10;ABC Corp | 456 King St W Toronto ON | SAMEDAY B2B | 52"
+                class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-white text-sm focus:border-orange-500 outline-none font-mono resize-none mb-4"></textarea>
+            <div class="flex gap-3">
+                <button onclick="closeImportModal()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-xl text-sm">Cancel</button>
+                <button onclick="importStops()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm">Import</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stop Detail Modal -->
+    <div id="stopDetailModal" class="modal-overlay hidden" onclick="closeStopDetailModal(event)">
+        <div class="modal-sheet" id="stopDetailContent"></div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed top-20 left-1/2 -translate-x-1/2 bg-green-600 text-white font-bold px-5 py-3 rounded-xl text-sm shadow-xl z-[2000] hidden">✅</div>
+
+    <script>
+    // ===== STATE =====
+    let stops = [];
+    let homeBase = { address: '2547 Rugby Rd, Mississauga ON L5B 1T1', lat: 43.5890, lon: -79.6441 };
+    let activeStopIndex = null;
+    let stopAddressCoords = {};
+    let pendingHomeBase = null;
+    let currentTab = 'map';
+
+    // Leaflet map state
+    let map = null;
+    let mapMarkers = [];
+    let mapPolyline = null;
+    let homeMarker = null;
+
+    // ===== INIT =====
+    document.addEventListener('DOMContentLoaded', function() {
+        loadSettings();
+        document.getElementById('todayDate').textContent = new Date().toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric' });
+        initMap();
+        renderStops();
+        updateStats();
+    });
+
+    // ===== MAP =====
+    function initMap() {
+        map = L.map('routeMap', {
+            center: [homeBase.lat, homeBase.lon],
+            zoom: 11,
+            zoomControl: true
+        });
+
+        // OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+
+        // Fix map size after layout
+        setTimeout(() => { map.invalidateSize(); }, 100);
+        renderMap();
+    }
+
+    function renderMap() {
+        if (!map) return;
+
+        // Clear existing markers and polyline
+        mapMarkers.forEach(m => map.removeLayer(m));
+        mapMarkers = [];
+        if (mapPolyline) { map.removeLayer(mapPolyline); mapPolyline = null; }
+        if (homeMarker) { map.removeLayer(homeMarker); homeMarker = null; }
+
+        // Home base marker (green house pin)
+        const homeIcon = L.divIcon({
+            className: '',
+            html: `<div style="
+                width:36px; height:36px; background:#16a34a; border-radius:50%;
+                border:3px solid white; display:flex; align-items:center; justify-content:center;
+                font-size:16px; box-shadow:0 3px 8px rgba(0,0,0,0.4);">🏠</div>`,
+            iconSize: [36, 36],
+            iconAnchor: [18, 18],
+            popupAnchor: [0, -20]
+        });
+        homeMarker = L.marker([homeBase.lat, homeBase.lon], { icon: homeIcon })
+            .addTo(map)
+            .bindPopup(`<div style="font-weight:700; color:#16a34a;">🏠 Start</div><div style="font-size:12px; color:#94a3b8;">${homeBase.address}</div>`);
+
+        // Route points array (start from home base)
+        const routePoints = [[homeBase.lat, homeBase.lon]];
+
+        // Stop markers
+        const priorityColors = {
+            'RUSH': '#dc2626', 'PRIORITY': '#ea580c', 'SAMEDAY B2B': '#2563eb',
+            'SAMEDAY B2C': '#16a34a', 'EVENING EXPRESS': '#3730a3'
+        };
+
+        stops.forEach((stop, i) => {
+            if (!stop.lat || !stop.lon) return;
+
+            const isActive = i === activeStopIndex;
+            const isDone = stop.status === 'delivered';
+            const isFailed = stop.status === 'failed';
+            const stopNum = i + 1;
+
+            // Pin color
+            let bgColor = isDone ? '#15803d' : isFailed ? '#b91c1c' : isActive ? '#f97316' : '#dc2626';
+            let borderColor = isActive ? '#fff' : '#fff';
+            let scale = isActive ? 'scale(1.3)' : 'scale(1)';
+            let opacity = (isDone || isFailed) ? '0.6' : '1';
+            let checkmark = isDone ? '✓' : isFailed ? '✗' : stopNum;
+
+            const pinIcon = L.divIcon({
+                className: '',
+                html: `<div style="
+                    transform:${scale}; opacity:${opacity}; transform-origin:bottom center;
+                    width:30px; height:38px; position:relative;">
+                    <div style="
+                        width:30px; height:30px; background:${bgColor};
+                        border-radius:50% 50% 50% 0; transform:rotate(-45deg);
+                        border:2.5px solid white; box-shadow:0 3px 8px rgba(0,0,0,0.5);
+                        display:flex; align-items:center; justify-content:center;">
+                        <span style="transform:rotate(45deg); color:white; font-weight:900; font-size:11px; line-height:1;">${checkmark}</span>
+                    </div>
+                </div>`,
+                iconSize: [30, 38],
+                iconAnchor: [15, 38],
+                popupAnchor: [0, -40]
+            });
+
+            const priorityColor = priorityColors[stop.priority] || '#2563eb';
+            const marker = L.marker([stop.lat, stop.lon], { icon: pinIcon })
+                .addTo(map)
+                .bindPopup(`
+                    <div style="min-width:180px;">
+                        <div style="font-weight:900; font-size:14px; color:#f1f5f9; margin-bottom:4px;">
+                            <span style="background:${bgColor}; color:white; border-radius:50%; width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; font-size:10px; margin-right:6px;">${stopNum}</span>
+                            ${stop.name}
+                        </div>
+                        <div style="font-size:12px; color:#94a3b8; margin-bottom:6px;">${stop.address}</div>
+                        <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                            <span style="background:${priorityColor}; color:white; font-size:10px; font-weight:700; padding:2px 8px; border-radius:4px;">${stop.priority}</span>
+                            ${stop.amount > 0 ? `<span style="color:#4ade80; font-weight:700; font-size:12px;">$${stop.amount}</span>` : ''}
+                        </div>
+                        ${stop.note ? `<div style="color:#fb923c; font-size:11px; margin-top:4px;">📝 ${stop.note}</div>` : ''}
+                        <div style="margin-top:8px; display:flex; gap:6px;">
+                            <a href="${buildNavUrl(stop.address)}" target="_blank" style="flex:1; background:#2563eb; color:white; font-weight:700; font-size:11px; padding:6px; border-radius:6px; text-align:center; text-decoration:none;">🧭 Go</a>
+                            ${(stop.status === 'pending' || stop.status === 'transit') ? `<button onclick="setActiveStop(${i}); map.closePopup();" style="flex:1; background:#f97316; color:white; font-weight:700; font-size:11px; padding:6px; border-radius:6px; border:none; cursor:pointer;">📍 Active</button>` : ''}
+                        </div>
+                    </div>
+                `);
+
+            marker.on('click', () => {});
+            mapMarkers.push(marker);
+
+            // Add to route line
+            if (stop.status !== 'delivered' && stop.status !== 'failed') {
+                routePoints.push([stop.lat, stop.lon]);
+            }
+        });
+
+        // Draw blue route polyline
+        if (routePoints.length > 1) {
+            mapPolyline = L.polyline(routePoints, {
+                color: '#3b82f6',
+                weight: 4,
+                opacity: 0.85,
+                dashArray: null,
+                lineJoin: 'round'
+            }).addTo(map);
+        }
+
+        // Fit map to show all markers
+        fitMapToBounds();
+    }
+
+    function fitMapToBounds() {
+        if (!map) return;
+        map.invalidateSize();
+        const allPoints = [[homeBase.lat, homeBase.lon]];
+        stops.forEach(s => { if (s.lat && s.lon) allPoints.push([s.lat, s.lon]); });
+        if (allPoints.length > 1) {
+            map.fitBounds(L.latLngBounds(allPoints), { padding: [50, 50], maxZoom: 14 });
+        } else {
+            map.setView([homeBase.lat, homeBase.lon], 12);
+        }
+    }
+
+    // ===== SETTINGS =====
+    function loadSettings() {
+        const s = JSON.parse(localStorage.getItem('sorseDriverSettings') || '{}');
+        document.getElementById('driverNameDisplay').textContent = s.name || 'Driver';
+        if (s.homeBase) {
+            homeBase = s.homeBase;
+            document.getElementById('homeBaseDisplay').textContent = homeBase.address;
+        }
+        if (s.name) document.getElementById('settingDriverName').value = s.name;
+        if (s.driverId) document.getElementById('settingDriverId').value = s.driverId;
+        if (s.vehicle) document.getElementById('settingVehicle').value = s.vehicle;
+        if (s.homeBase) document.getElementById('settingHomeBase').value = s.homeBase.address;
+        if (s.mapsApp) document.getElementById('settingMapsApp').value = s.mapsApp;
+
+        const today = new Date().toDateString();
+        const savedStops = JSON.parse(localStorage.getItem('sorseDriverStops_' + today) || '[]');
+        if (savedStops.length > 0) {
+            stops = savedStops;
+            activeStopIndex = stops.findIndex(s => s.status === 'pending' || s.status === 'transit');
+            if (activeStopIndex === -1) activeStopIndex = null;
+        }
+    }
+
+    function saveSettings() {
+        const s = {
+            name: document.getElementById('settingDriverName').value,
+            driverId: document.getElementById('settingDriverId').value,
+            vehicle: document.getElementById('settingVehicle').value,
+            homeBase: { address: document.getElementById('settingHomeBase').value, lat: homeBase.lat, lon: homeBase.lon },
+            mapsApp: document.getElementById('settingMapsApp').value
+        };
+        localStorage.setItem('sorseDriverSettings', JSON.stringify(s));
+        document.getElementById('driverNameDisplay').textContent = s.name || 'Driver';
+        homeBase = s.homeBase;
+        document.getElementById('homeBaseDisplay').textContent = homeBase.address;
+        showToast('✅ Settings saved!', 'green');
+        renderMap();
+    }
+
+    function saveStops() {
+        const today = new Date().toDateString();
+        localStorage.setItem('sorseDriverStops_' + today, JSON.stringify(stops));
+    }
+
+    // ===== TABS =====
+    function showTab(tab) {
+        currentTab = tab;
+        const tabs = ['map', 'route', 'history', 'earnings', 'settings'];
+        tabs.forEach(t => {
+            const btn = document.getElementById('tab-' + t);
+            if (btn) btn.className = 'flex-1 py-2.5 text-center text-xs font-bold text-slate-500 border-t-2 border-transparent';
+            const content = document.getElementById(t + 'Tab');
+            if (content) { content.classList.remove('active'); content.style.display = 'none'; }
+        });
+
+        const activeBtn = document.getElementById('tab-' + tab);
+        if (activeBtn) activeBtn.className = 'flex-1 py-2.5 text-center text-xs font-bold text-orange-400 border-t-2 border-orange-400';
+        const activeContent = document.getElementById(tab + 'Tab');
+        if (activeContent) { activeContent.classList.add('active'); activeContent.style.display = tab === 'map' ? 'flex' : 'block'; }
+
+        if (tab === 'map') {
+            setTimeout(() => { if (map) { map.invalidateSize(); fitMapToBounds(); } }, 100);
+        }
+        if (tab === 'history') renderHistory();
+        if (tab === 'earnings') renderEarnings();
+        if (tab === 'route' && activeStopIndex !== null) {
+            document.getElementById('activeStopBanner').classList.remove('hidden');
+        }
+    }
+
+    // ===== HOME BASE =====
+    function openHomeBaseModal() {
+        document.getElementById('homeBaseModal').classList.remove('hidden');
+        document.getElementById('homeBaseInput').value = homeBase.address;
+    }
+    function closeHomeBaseModal(e) {
+        if (!e || e.target === document.getElementById('homeBaseModal')) {
+            document.getElementById('homeBaseModal').classList.add('hidden');
+        }
+    }
+    function setHomeBase(address, lat, lon) {
+        pendingHomeBase = { address, lat, lon };
+        document.getElementById('homeBaseInput').value = address;
+        document.getElementById('homeBaseSuggestions').classList.add('hidden');
+    }
+    function confirmHomeBase() {
+        if (pendingHomeBase) { homeBase = pendingHomeBase; }
+        else { homeBase.address = document.getElementById('homeBaseInput').value; }
+        document.getElementById('homeBaseDisplay').textContent = homeBase.address;
+        document.getElementById('homeBaseModal').classList.add('hidden');
+        pendingHomeBase = null;
+        renderMap();
+        showToast('🏠 Starting point updated!', 'blue');
+    }
+
+    let homeBaseSearchTimer = null;
+    function searchHomeBase(q) {
+        clearTimeout(homeBaseSearchTimer);
+        if (q.length < 3) { document.getElementById('homeBaseSuggestions').classList.add('hidden'); return; }
+        homeBaseSearchTimer = setTimeout(() => {
+            fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q + ', Ontario, Canada')}&format=json&limit=5&countrycodes=ca`)
+                .then(r => r.json()).then(data => {
+                    const el = document.getElementById('homeBaseSuggestions');
+                    if (!data.length) { el.classList.add('hidden'); return; }
+                    el.innerHTML = data.map(d => `<div class="autocomplete-item" onclick="setHomeBase('${d.display_name.replace(/'/g,"\\'")}',${d.lat},${d.lon})">${d.display_name}</div>`).join('');
+                    el.classList.remove('hidden');
+                });
+        }, 350);
+    }
+
+    // ===== ADD STOP =====
+    function openAddStopModal() {
+        document.getElementById('addStopModal').classList.remove('hidden');
+        document.getElementById('newStopName').focus();
+    }
+    function closeAddStopModal(e) {
+        if (!e || e.target === document.getElementById('addStopModal')) {
+            document.getElementById('addStopModal').classList.add('hidden');
+            clearAddForm();
+        }
+    }
+    function clearAddForm() {
+        ['newStopOrder','newStopName','newStopAddress','newStopPostal','newStopPhone','newStopNote','newStopAmount'].forEach(id => {
+            document.getElementById(id).value = '';
+        });
+        document.getElementById('newStopPriority').value = 'SAMEDAY B2B';
+        stopAddressCoords.newStop = null;
+    }
+
+    let stopSearchTimer = null;
+    function searchStopAddress(q) {
+        clearTimeout(stopSearchTimer);
+        if (q.length < 3) { document.getElementById('stopAddressSuggestions').classList.add('hidden'); return; }
+        stopSearchTimer = setTimeout(() => {
+            fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q + ', Ontario, Canada')}&format=json&limit=6&countrycodes=ca`)
+                .then(r => r.json()).then(data => {
+                    const el = document.getElementById('stopAddressSuggestions');
+                    if (!data.length) { el.classList.add('hidden'); return; }
+                    el.innerHTML = data.map(d => `<div class="autocomplete-item" onclick="selectStopAddress('${d.display_name.replace(/'/g,"\\'")}',${d.lat},${d.lon})">${d.display_name}</div>`).join('');
+                    el.classList.remove('hidden');
+                });
+        }, 350);
+    }
+    function selectStopAddress(addr, lat, lon) {
+        document.getElementById('newStopAddress').value = addr;
+        stopAddressCoords.newStop = { lat: parseFloat(lat), lon: parseFloat(lon) };
+        document.getElementById('stopAddressSuggestions').classList.add('hidden');
+    }
+
+    function addStop() {
+        const name = document.getElementById('newStopName').value.trim();
+        const address = document.getElementById('newStopAddress').value.trim();
+        if (!name || !address) { showToast('⚠️ Name and address required', 'red'); return; }
+        const stop = {
+            id: Date.now(),
+            orderNum: document.getElementById('newStopOrder').value.trim() || null,
+            name, address,
+            postal: document.getElementById('newStopPostal').value.trim() || null,
+            phone: document.getElementById('newStopPhone').value.trim() || null,
+            note: document.getElementById('newStopNote').value.trim() || null,
+            priority: document.getElementById('newStopPriority').value,
+            amount: parseFloat(document.getElementById('newStopAmount').value) || 0,
+            status: 'pending',
+            lat: stopAddressCoords.newStop?.lat || null,
+            lon: stopAddressCoords.newStop?.lon || null,
+            addedAt: new Date().toISOString(), completedAt: null
+        };
+        stops.push(stop);
+        saveStops();
+        closeAddStopModal();
+        renderStops();
+        renderMap();
+        updateStats();
+        if (activeStopIndex === null) setActiveStop(stops.length - 1);
+        showToast('📦 Stop added!', 'green');
+    }
+
+    // ===== IMPORT =====
+    function openImportModal() { document.getElementById('importModal').classList.remove('hidden'); }
+    function closeImportModal(e) {
+        if (!e || e.target === document.getElementById('importModal')) document.getElementById('importModal').classList.add('hidden');
+    }
+    function importStops() {
+        const lines = document.getElementById('importText').value.trim().split('\n').filter(l => l.trim());
+        let added = 0;
+        lines.forEach(line => {
+            const parts = line.split('|').map(p => p.trim());
+            if (parts.length >= 2) {
+                stops.push({ id: Date.now() + Math.random(), orderNum: null, name: parts[0], address: parts[1],
+                    postal: null, phone: null, note: null, priority: parts[2] || 'SAMEDAY B2B',
+                    amount: parseFloat(parts[3]) || 0, status: 'pending', lat: null, lon: null,
+                    addedAt: new Date().toISOString(), completedAt: null });
+                added++;
+            }
+        });
+        saveStops(); closeImportModal(); renderStops(); renderMap(); updateStats();
+        if (activeStopIndex === null && stops.length > 0) setActiveStop(0);
+        showToast(`📋 ${added} stops imported!`, 'blue');
+        document.getElementById('importText').value = '';
+    }
+
+    // ===== ROUTE OPTIMIZATION =====
+    async function optimizeRoute() {
+        if (stops.filter(s => s.status === 'pending').length < 2) {
+            showToast('⚠️ Need at least 2 pending stops', 'yellow'); return;
+        }
+        const btn = document.getElementById('optimizeBtn');
+        btn.textContent = '⏳ Optimizing...'; btn.disabled = true;
+
+        for (let s of stops) {
+            if (!s.lat && s.status === 'pending') {
+                try {
+                    const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(s.address)}&format=json&limit=1&countrycodes=ca`);
+                    const d = await r.json();
+                    if (d[0]) { s.lat = parseFloat(d[0].lat); s.lon = parseFloat(d[0].lon); }
+                    await new Promise(res => setTimeout(res, 300));
+                } catch(e) {}
+            }
+        }
+
+        const pending = stops.filter(s => s.status === 'pending' && s.lat);
+        const other = stops.filter(s => s.status !== 'pending' || !s.lat);
+        const optimized = [];
+        let cLat = homeBase.lat, cLon = homeBase.lon;
+        const remaining = [...pending];
+        while (remaining.length > 0) {
+            let nearest = null, nearestDist = Infinity, nearestIdx = -1;
+            remaining.forEach((s, i) => {
+                const d = haversine(cLat, cLon, s.lat, s.lon);
+                if (d < nearestDist) { nearestDist = d; nearest = s; nearestIdx = i; }
+            });
+            if (nearest) { optimized.push(nearest); cLat = nearest.lat; cLon = nearest.lon; remaining.splice(nearestIdx, 1); }
+        }
+
+        stops = [...other, ...optimized];
+        saveStops(); renderStops(); renderMap();
+        if (activeStopIndex === null && optimized.length > 0) setActiveStop(other.length);
+        btn.textContent = '🗺️ Optimize'; btn.disabled = false;
+        showToast(`✅ Route optimized — ${optimized.length} stops!`, 'green');
+    }
+
+    async function reoptimizeRoute() {
+        await optimizeRoute();
+        showTab('map');
+    }
+
+    function haversine(lat1, lon1, lat2, lon2) {
+        const R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLon = (lon2-lon1)*Math.PI/180;
+        const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    // ===== STOP MANAGEMENT =====
+    function setActiveStop(index) {
+        activeStopIndex = index;
+        const stop = stops[index];
+        if (!stop) { activeStopIndex = null; document.getElementById('activeStopBanner').classList.add('hidden'); return; }
+        document.getElementById('activeStopBanner').classList.remove('hidden');
+        document.getElementById('activeStopName').textContent = stop.name;
+        document.getElementById('activeStopAddr').textContent = stop.address + (stop.note ? ` · ${stop.note}` : '');
+        const pendingCount = stops.filter(s => s.status === 'pending' || s.status === 'transit').length;
+        const pos = stops.slice(0, index + 1).filter(s => s.status === 'pending' || s.status === 'transit').length;
+        document.getElementById('activeStopNum').textContent = `Stop ${pos} of ${pendingCount}`;
+        document.getElementById('activeNavLink').href = buildNavUrl(stop.address);
+        renderStops(); renderMap();
+        // Pan map to active stop
+        if (map && stop.lat && stop.lon) map.setView([stop.lat, stop.lon], 14, { animate: true });
+    }
+
+    function buildNavUrl(address) {
+        const s = JSON.parse(localStorage.getItem('sorseDriverSettings') || '{}');
+        const app = s.mapsApp || 'google';
+        const enc = encodeURIComponent(address);
+        if (app === 'apple') return `maps://maps.apple.com/?daddr=${enc}`;
+        if (app === 'waze') return `https://waze.com/ul?q=${enc}&navigate=yes`;
+        return `https://www.google.com/maps/dir/?api=1&destination=${enc}`;
+    }
+
+    function markDelivered() {
+        if (activeStopIndex === null) return;
+        stops[activeStopIndex].status = 'delivered';
+        stops[activeStopIndex].completedAt = new Date().toISOString();
+        showToast('✅ Delivered!', 'green');
+        advanceToNextStop(); saveStops(); renderStops(); renderMap(); updateStats();
+    }
+
+    function markFailed() {
+        if (activeStopIndex === null) return;
+        const reason = prompt('Reason for failed delivery (optional):') || 'Unable to deliver';
+        stops[activeStopIndex].status = 'failed';
+        stops[activeStopIndex].failReason = reason;
+        stops[activeStopIndex].completedAt = new Date().toISOString();
+        showToast('❌ Marked as failed', 'red');
+        advanceToNextStop(); saveStops(); renderStops(); renderMap(); updateStats();
+    }
+
+    function advanceToNextStop() {
+        const nextIdx = stops.findIndex((s, i) => i > activeStopIndex && (s.status === 'pending' || s.status === 'transit'));
+        if (nextIdx !== -1) { setActiveStop(nextIdx); }
+        else { activeStopIndex = null; document.getElementById('activeStopBanner').classList.add('hidden'); showToast('🎉 All stops complete!', 'green'); }
+    }
+
+    function openStopDetail(index) {
+        const stop = stops[index];
+        const priorityColors = { 'RUSH':'#dc2626','PRIORITY':'#ea580c','SAMEDAY B2B':'#2563eb','SAMEDAY B2C':'#16a34a','EVENING EXPRESS':'#3730a3' };
+        const color = priorityColors[stop.priority] || '#2563eb';
+        const statusLabels = { pending:'⏳ Pending', transit:'🚗 In Transit', delivered:'✅ Delivered', failed:'❌ Failed' };
+        document.getElementById('stopDetailContent').innerHTML = `
+            <div class="flex items-center justify-between mb-5">
+                <h3 class="text-lg font-bold text-white">Stop Details</h3>
+                <button onclick="closeStopDetailModal()" class="text-slate-400 hover:text-white text-2xl leading-none">×</button>
+            </div>
+            <div class="flex items-center gap-3 mb-4">
+                <span class="px-3 py-1 rounded-full text-xs font-bold text-white" style="background:${color}">${stop.priority}</span>
+                <span class="text-slate-400 text-sm">${statusLabels[stop.status] || stop.status}</span>
+                ${stop.orderNum ? `<span class="text-slate-500 text-xs font-mono">#${stop.orderNum}</span>` : ''}
+            </div>
+            <div class="bg-slate-700 rounded-xl p-4 mb-4">
+                <div class="text-white font-bold text-base mb-1">${stop.name}</div>
+                <div class="text-slate-300 text-sm mb-1">${stop.address}</div>
+                ${stop.postal ? `<div class="text-slate-400 text-sm">📮 ${stop.postal}</div>` : ''}
+                ${stop.phone ? `<div class="text-slate-400 text-sm">📞 <a href="tel:${stop.phone}" class="text-blue-400">${stop.phone}</a></div>` : ''}
+                ${stop.note ? `<div class="text-orange-300 text-sm mt-2">📝 ${stop.note}</div>` : ''}
+            </div>
+            ${stop.amount > 0 ? `<div class="bg-slate-700 rounded-xl p-4 mb-4 flex justify-between items-center"><span class="text-slate-400 text-sm">Delivery Amount</span><span class="text-green-400 font-black text-xl">$${stop.amount}</span></div>` : ''}
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <a href="${buildNavUrl(stop.address)}" target="_blank" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm text-center">🧭 Navigate</a>
+                ${stop.phone ? `<a href="tel:${stop.phone}" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-xl text-sm text-center">📞 Call</a>` : '<div></div>'}
+            </div>
+            ${stop.status === 'pending' || stop.status === 'transit' ? `
+            <div class="flex gap-3 mb-3">
+                <button onclick="setActiveStop(${index}); closeStopDetailModal(); showTab('map');" class="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl text-sm">📍 Set Active</button>
+                <button onclick="stops[${index}].status='delivered'; stops[${index}].completedAt=new Date().toISOString(); saveStops(); renderStops(); renderMap(); updateStats(); closeStopDetailModal(); showToast('✅ Delivered!','green');" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl text-sm">✅ Delivered</button>
+            </div>` : ''}
+            ${stop.status === 'delivered' ? `<div class="text-center text-green-400 font-bold py-2">✅ Delivered at ${stop.completedAt ? new Date(stop.completedAt).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'}) : '—'}</div>` : ''}
+            ${stop.status === 'failed' ? `<div class="text-center text-red-400 font-bold py-2">❌ Failed: ${stop.failReason || 'Unknown'}</div>` : ''}
+            <button onclick="if(confirm('Remove this stop?')){stops.splice(${index},1);saveStops();renderStops();renderMap();updateStats();closeStopDetailModal();}" class="w-full mt-2 bg-slate-700 hover:bg-red-900 text-slate-400 hover:text-red-300 font-bold py-2.5 rounded-xl text-sm">🗑️ Remove Stop</button>
+        `;
+        document.getElementById('stopDetailModal').classList.remove('hidden');
+    }
+    function closeStopDetailModal(e) {
+        if (!e || e.target === document.getElementById('stopDetailModal')) document.getElementById('stopDetailModal').classList.add('hidden');
+    }
+
+    // ===== RENDER STOPS LIST =====
+    function renderStops() {
+        const list = document.getElementById('stopList');
+        const empty = document.getElementById('emptyState');
+        if (stops.length === 0) { list.innerHTML = ''; empty.classList.remove('hidden'); return; }
+        empty.classList.add('hidden');
+        const priorityColors = { 'RUSH':'#dc2626','PRIORITY':'#ea580c','SAMEDAY B2B':'#2563eb','SAMEDAY B2C':'#16a34a','EVENING EXPRESS':'#3730a3' };
+        const statusIcons = { pending:'⏳', pickup:'📦', transit:'🚗', delivered:'✅', failed:'❌' };
+        list.innerHTML = stops.map((stop, i) => {
+            const isActive = i === activeStopIndex;
+            const isDone = stop.status === 'delivered';
+            const isFailed = stop.status === 'failed';
+            const cardClass = isActive ? 'active' : isDone ? 'done' : isFailed ? 'failed' : '';
+            const color = priorityColors[stop.priority] || '#2563eb';
+            return `
+                <div class="stop-card ${cardClass} bg-slate-800 rounded-xl p-4 cursor-pointer" onclick="openStopDetail(${i})">
+                    <div class="flex items-start gap-3">
+                        <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-black ${isActive?'bg-orange-500 text-white':isDone?'bg-green-700 text-white':isFailed?'bg-red-800 text-white':'bg-slate-700 text-slate-300'}">
+                            ${isDone?'✓':isFailed?'✗':i+1}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-0.5">
+                                <span class="font-bold text-white text-sm truncate">${stop.name}</span>
+                                ${stop.orderNum ? `<span class="text-slate-500 text-xs font-mono flex-shrink-0">#${stop.orderNum}</span>` : ''}
+                            </div>
+                            <div class="text-slate-400 text-xs truncate mb-1">${stop.address}</div>
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 rounded text-xs font-bold text-white" style="background:${color}">${stop.priority}</span>
+                                ${stop.amount > 0 ? `<span class="text-green-400 text-xs font-bold">$${stop.amount}</span>` : ''}
+                                ${stop.note ? `<span class="text-orange-300 text-xs">📝</span>` : ''}
+                                ${isActive ? `<span class="text-orange-400 text-xs font-bold animate-pulse">← ACTIVE</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="flex-shrink-0 text-lg">${statusIcons[stop.status]||'⏳'}</div>
+                    </div>
+                </div>
+                ${i < stops.length-1 ? `<div class="route-connector ${isDone?'done':''}"></div>` : ''}
+            `;
+        }).join('');
+    }
+
+    function renderHistory() {
+        const done = stops.filter(s => s.status === 'delivered' || s.status === 'failed');
+        const el = document.getElementById('historyList');
+        if (!done.length) { el.innerHTML = '<div class="text-slate-500 text-sm text-center py-8">No completed deliveries yet today.</div>'; return; }
+        el.innerHTML = done.map(s => `
+            <div class="bg-slate-800 rounded-xl p-4">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="font-bold text-white text-sm">${s.name}</span>
+                    <span class="${s.status==='delivered'?'text-green-400':'text-red-400'} text-sm font-bold">${s.status==='delivered'?'✅ Delivered':'❌ Failed'}</span>
+                </div>
+                <div class="text-slate-400 text-xs">${s.address}</div>
+                ${s.completedAt ? `<div class="text-slate-500 text-xs mt-1">${new Date(s.completedAt).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'})}</div>` : ''}
+                ${s.amount > 0 ? `<div class="text-green-400 text-sm font-bold mt-1">$${s.amount}</div>` : ''}
+            </div>
+        `).join('');
+    }
+
+    function renderEarnings() {
+        const delivered = stops.filter(s => s.status === 'delivered');
+        const total = delivered.reduce((sum, s) => sum + (s.amount || 0), 0);
+        const avg = delivered.length > 0 ? Math.round(total / delivered.length) : 0;
+        document.getElementById('earningsTotal').textContent = `$${total.toFixed(2)}`;
+        document.getElementById('earningsDeliveries').textContent = delivered.length;
+        document.getElementById('earningsAvg').textContent = `$${avg}`;
+        document.getElementById('earningsBreakdown').innerHTML = delivered.map(s => `
+            <div class="bg-slate-800 rounded-xl p-3 flex justify-between items-center">
+                <div><div class="text-white text-sm font-bold">${s.name}</div>
+                <div class="text-slate-400 text-xs">${s.priority} · ${s.completedAt ? new Date(s.completedAt).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'}) : ''}</div></div>
+                <div class="text-green-400 font-black">$${s.amount||0}</div>
+            </div>
+        `).join('') || '<div class="text-slate-500 text-sm text-center py-4">No earnings yet.</div>';
+    }
+
+    function updateStats() {
+        document.getElementById('statTotal').textContent = stops.length;
+        document.getElementById('statDone').textContent = stops.filter(s => s.status === 'delivered').length;
+        document.getElementById('statRemaining').textContent = stops.filter(s => s.status === 'pending' || s.status === 'transit').length;
+        document.getElementById('statEarnings').textContent = '$' + stops.filter(s => s.status === 'delivered').reduce((sum, s) => sum + (s.amount || 0), 0);
+    }
+
+    // ===== SAMPLE ROUTE =====
+    function loadSampleRoute() {
+        stops = [
+            { id:1, orderNum:'100001', name:'ABC Restaurant', address:'1234 Hurontario St, Mississauga ON', postal:'L5B 3G4', phone:'905-555-0101', note:'Back entrance', priority:'SAMEDAY B2B', amount:26, status:'pending', lat:43.605, lon:-79.638, addedAt:new Date().toISOString(), completedAt:null },
+            { id:2, orderNum:'100002', name:'Jane Smith', address:'789 Queen St W, Toronto ON', postal:'M6J 1G1', phone:'416-555-0202', note:'Buzz 301', priority:'RUSH', amount:39, status:'pending', lat:43.644, lon:-79.413, addedAt:new Date().toISOString(), completedAt:null },
+            { id:3, orderNum:'100003', name:'XYZ Corp', address:'100 King St W, Toronto ON', postal:'M5X 1A9', phone:null, note:'Reception desk', priority:'PRIORITY', amount:35, status:'pending', lat:43.648, lon:-79.382, addedAt:new Date().toISOString(), completedAt:null },
+            { id:4, orderNum:'100004', name:'Mike Johnson', address:'456 Bloor St W, Toronto ON', postal:'M5S 1X8', phone:'647-555-0303', note:null, priority:'SAMEDAY B2C', amount:20, status:'pending', lat:43.665, lon:-79.415, addedAt:new Date().toISOString(), completedAt:null },
+            { id:5, orderNum:'100005', name:'Sunset Bistro', address:'222 Lakeshore Rd E, Oakville ON', postal:'L6J 1H8', phone:'905-555-0404', note:'Call on arrival', priority:'EVENING EXPRESS', amount:120, status:'pending', lat:43.447, lon:-79.668, addedAt:new Date().toISOString(), completedAt:null },
+            { id:6, orderNum:'100006', name:'North Star Pharmacy', address:'3050 Confederation Pkwy, Mississauga ON', postal:'L5B 3Z5', phone:'905-555-0505', note:null, priority:'SAMEDAY B2B', amount:26, status:'pending', lat:43.593, lon:-79.644, addedAt:new Date().toISOString(), completedAt:null },
+        ];
+        saveStops(); renderStops(); renderMap(); updateStats(); setActiveStop(0);
+        showToast('📋 Sample route loaded — 6 stops!', 'blue');
+    }
+
+    // ===== TOAST =====
+    function showToast(msg, color = 'green') {
+        const t = document.getElementById('toast');
+        const colors = { green:'bg-green-600', blue:'bg-blue-600', red:'bg-red-600', yellow:'bg-yellow-600' };
+        t.className = `fixed top-20 left-1/2 -translate-x-1/2 ${colors[color]||'bg-green-600'} text-white font-bold px-5 py-3 rounded-xl text-sm shadow-xl z-[2000] transition-all`;
+        t.textContent = msg;
+        t.classList.remove('hidden');
+        setTimeout(() => t.classList.add('hidden'), 2500);
+    }
+
+    // Init tab display
+    document.querySelectorAll('.tab-content').forEach(el => { el.style.display = 'none'; });
+    document.getElementById('mapTab').style.display = 'flex';
+    </script>
+</body>
+</html>
