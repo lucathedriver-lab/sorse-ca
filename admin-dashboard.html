@@ -85,6 +85,12 @@
                             Analytics
                         </a>
                     </li>
+                    <li>
+                        <a href="#" onclick="showSection('priceoverride',this)" class="nav-link flex items-center p-3 rounded-lg text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors text-sm">
+                            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+                            Price Override
+                        </a>
+                    </li>
                     <li class="pt-4 border-t mt-2">
                         <a href="driver.html" class="flex items-center p-3 rounded-lg text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors text-sm">
                             <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
@@ -353,6 +359,87 @@
                 </div>
             </div>
 
+            <!-- ===== PRICE OVERRIDE ===== -->
+            <div id="priceoverride" class="section">
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Customer Price Override</h2>
+                <p class="text-gray-500 mb-6">Apply a custom discount to a specific customer. The override will reduce their quoted price by the selected percentage on their next order.</p>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <!-- Override Form -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">🏷️ Set Price Override</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Customer Name / Business</label>
+                                <input type="text" id="overrideCustomer" placeholder="e.g. Mario's Pizza" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Customer Email or Phone</label>
+                                <input type="text" id="overrideContact" placeholder="e.g. mario@pizza.ca or 647-555-0100" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Discount Override</label>
+                                <select id="overrideDiscount" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+                                    <option value="0">No Discount (Standard Rate)</option>
+                                    <option value="5">5% Off</option>
+                                    <option value="10">10% Off</option>
+                                    <option value="15">15% Off</option>
+                                    <option value="20">20% Off</option>
+                                    <option value="25">25% Off</option>
+                                    <option value="30">30% Off</option>
+                                    <option value="35">35% Off</option>
+                                    <option value="40">40% Off</option>
+                                    <option value="45">45% Off</option>
+                                    <option value="50">50% Off</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
+                                <input type="text" id="overrideNote" placeholder="e.g. Loyal customer, volume deal" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Expiry</label>
+                                <select id="overrideExpiry" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+                                    <option value="permanent">Permanent</option>
+                                    <option value="1month">1 Month</option>
+                                    <option value="3months">3 Months</option>
+                                    <option value="6months">6 Months</option>
+                                    <option value="1year">1 Year</option>
+                                    <option value="oneuse">One-Time Use</option>
+                                </select>
+                            </div>
+                            <button onclick="saveOverride()" class="w-full bg-orange-500 text-white py-3 rounded-lg hover:bg-orange-600 font-semibold text-sm transition-colors">Save Price Override</button>
+                        </div>
+                    </div>
+
+                    <!-- Active Overrides List -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold text-gray-800">📋 Active Overrides</h3>
+                            <span id="overrideCount" class="bg-orange-100 text-orange-700 text-xs font-bold px-3 py-1 rounded-full">0 active</span>
+                        </div>
+                        <div id="overrideList">
+                            <div class="flex flex-col items-center justify-center py-10 text-gray-400">
+                                <svg class="w-10 h-10 mb-2 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+                                <p class="text-sm">No overrides set yet</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- How It Works -->
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-5">
+                    <h4 class="font-semibold text-blue-800 mb-2">ℹ️ How Price Override Works</h4>
+                    <ul class="text-sm text-blue-700 space-y-1 list-disc list-inside">
+                        <li>Enter the customer's name and contact info, then select a discount percentage in 5% increments</li>
+                        <li>The override is stored locally and can be applied when generating a label or quote for that customer</li>
+                        <li>Overrides can be permanent, time-limited, or one-time use</li>
+                        <li>Standard rate is always shown first; override is applied as a line-item discount on the invoice</li>
+                        <li>Bitcoin customers already receive 10% off — overrides stack on top of that</li>
+                    </ul>
+                </div>
+            </div>
+
             <!-- ===== BITCOIN ===== -->
             <div id="bitcoin" class="section">
                 <h2 class="text-2xl font-bold text-gray-800 mb-6">Bitcoin Payment Analytics</h2>
@@ -445,6 +532,58 @@
     }
 
     // Charts (empty state)
+    // ── Price Override Logic ──
+    let priceOverrides = JSON.parse(localStorage.getItem('sorseOverrides') || '[]');
+
+    function renderOverrides() {
+        const list = document.getElementById('overrideList');
+        const count = document.getElementById('overrideCount');
+        count.textContent = priceOverrides.length + ' active';
+        if (priceOverrides.length === 0) {
+            list.innerHTML = '<div class="flex flex-col items-center justify-center py-10 text-gray-400"><svg class="w-10 h-10 mb-2 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg><p class="text-sm">No overrides set yet</p></div>';
+            return;
+        }
+        list.innerHTML = priceOverrides.map((o, i) => `
+            <div class="flex items-center justify-between p-3 rounded-lg border mb-2 ${o.discount > 0 ? 'bg-orange-50 border-orange-200' : 'bg-gray-50 border-gray-200'}">
+                <div>
+                    <div class="font-semibold text-gray-800 text-sm">${o.customer}</div>
+                    <div class="text-xs text-gray-500">${o.contact} &bull; ${o.expiry} &bull; ${o.note || 'No notes'}</div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="font-black text-lg ${o.discount > 0 ? 'text-orange-600' : 'text-gray-400'}">${o.discount > 0 ? '-' + o.discount + '%' : 'Standard'}</span>
+                    <button onclick="removeOverride(${i})" class="text-red-400 hover:text-red-600 text-xs font-medium">Remove</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function saveOverride() {
+        const customer = document.getElementById('overrideCustomer').value.trim();
+        const contact = document.getElementById('overrideContact').value.trim();
+        const discount = parseInt(document.getElementById('overrideDiscount').value);
+        const note = document.getElementById('overrideNote').value.trim();
+        const expiry = document.getElementById('overrideExpiry').value;
+        if (!customer) { alert('Please enter a customer name.'); return; }
+        // Remove existing override for same customer
+        priceOverrides = priceOverrides.filter(o => o.customer.toLowerCase() !== customer.toLowerCase());
+        priceOverrides.unshift({ customer, contact, discount, note, expiry, created: new Date().toLocaleDateString() });
+        localStorage.setItem('sorseOverrides', JSON.stringify(priceOverrides));
+        renderOverrides();
+        document.getElementById('overrideCustomer').value = '';
+        document.getElementById('overrideContact').value = '';
+        document.getElementById('overrideNote').value = '';
+        document.getElementById('overrideDiscount').value = '0';
+        alert(`Override saved! ${customer} will receive ${discount > 0 ? discount + '% off' : 'standard pricing'}.`);
+    }
+
+    function removeOverride(i) {
+        priceOverrides.splice(i, 1);
+        localStorage.setItem('sorseOverrides', JSON.stringify(priceOverrides));
+        renderOverrides();
+    }
+
+    renderOverrides();
+
     let chartsInit = false;
     function initCharts() {
         if (chartsInit) return;

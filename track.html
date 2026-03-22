@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track Your Delivery | SORSE Courier</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        :root {
+            --sorse-orange: #E67928;
+            --sorse-blue: #1E3A5F;
+        }
+        body { font-family: 'Arial', sans-serif; background: #FFF8F2; }
+        .pulse { animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .status-dot {
+            width: 12px; height: 12px; border-radius: 50%; display: inline-block;
+        }
+        .step-line {
+            width: 2px; height: 40px; background: #E5E7EB; margin: 0 auto;
+        }
+        .step-line.done { background: #10B981; }
+        #trackingMap { height: 280px; border-radius: 16px; }
+        .driver-card {
+            background: linear-gradient(135deg, #1E3A5F, #E67928);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header style="background: linear-gradient(90deg, #1E3A5F, #E67928); box-shadow: 0 2px 12px rgba(230,121,40,0.3);">
+        <div class="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
+            <img src="sorse_logo_clean.png" alt="SORSE" class="h-12 w-auto" style="filter: brightness(0) invert(1);">
+            <a href="index.html" class="text-white text-sm font-medium hover:text-orange-200">← Back to Home</a>
+        </div>
+    </header>
+
+    <div class="max-w-2xl mx-auto px-4 py-8">
+
+        <!-- Search Box -->
+        <div id="searchSection">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-black mb-2" style="color: var(--sorse-blue)">Track Your Delivery</h1>
+                <p class="text-gray-500">Enter your tracking number or the phone number you used to book</p>
+            </div>
+            <div class="bg-white rounded-2xl shadow-md p-6 mb-4">
+                <div class="flex gap-3">
+                    <input type="text" id="trackInput" placeholder="Tracking # or phone number" 
+                        class="flex-1 border-2 border-gray-200 rounded-xl px-4 py-3 text-lg focus:outline-none focus:border-orange-400"
+                        onkeydown="if(event.key==='Enter') loadTracking()">
+                    <button onclick="loadTracking()" 
+                        class="text-white px-6 py-3 rounded-xl font-bold text-lg hover:opacity-90 transition-opacity"
+                        style="background: var(--sorse-orange);">Track</button>
+                </div>
+                <p class="text-xs text-gray-400 mt-3 text-center">Your tracking number was sent via SMS and email when your order was confirmed</p>
+            </div>
+            <!-- Demo button -->
+            <div class="text-center">
+                <button onclick="loadDemo()" class="text-sm underline" style="color: var(--sorse-orange)">View demo tracking page</button>
+            </div>
+        </div>
+
+        <!-- Tracking Results (hidden by default) -->
+        <div id="trackingResult" class="hidden">
+
+            <!-- Order Header -->
+            <div class="bg-white rounded-2xl shadow-md p-5 mb-4">
+                <div class="flex justify-between items-start mb-3">
+                    <div>
+                        <p class="text-xs text-gray-400 uppercase font-semibold">Tracking Number</p>
+                        <p class="text-xl font-black" style="color: var(--sorse-blue)" id="displayTrackNum">SRS-20260322-001</p>
+                    </div>
+                    <div id="statusBadge" class="px-4 py-2 rounded-full text-sm font-bold text-white" style="background: #F97316;">
+                        In Transit
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <p class="text-gray-400">From</p>
+                        <p class="font-semibold text-gray-700" id="displayFrom">2547 Rugby Rd, Mississauga</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-400">To</p>
+                        <p class="font-semibold text-gray-700" id="displayTo">123 King St W, Toronto</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-400">Service</p>
+                        <p class="font-semibold text-gray-700" id="displayService">Rush — 90 min</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-400">Order Date</p>
+                        <p class="font-semibold text-gray-700" id="displayDate">Mar 22, 2026</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ETA Banner -->
+            <div class="rounded-2xl p-5 mb-4 text-white text-center" style="background: linear-gradient(135deg, #1E3A5F, #E67928);">
+                <p class="text-sm opacity-80 mb-1">Estimated Arrival</p>
+                <p class="text-4xl font-black" id="displayETA">2:45 PM</p>
+                <p class="text-sm opacity-80 mt-1" id="displayETANote">Approximately 18 minutes away</p>
+            </div>
+
+            <!-- Map -->
+            <div class="bg-white rounded-2xl shadow-md p-4 mb-4">
+                <h3 class="font-bold text-gray-700 mb-3">Live Route</h3>
+                <div id="trackingMap"></div>
+                <p class="text-xs text-gray-400 mt-2 text-center">Map updates every 30 seconds</p>
+            </div>
+
+            <!-- Driver Info Card -->
+            <div class="driver-card rounded-2xl p-5 mb-4 text-white">
+                <h3 class="text-sm font-semibold opacity-80 mb-3 uppercase">Your Driver</h3>
+                <div class="flex items-center gap-4">
+                    <div class="w-16 h-16 rounded-full bg-white bg-opacity-20 flex items-center justify-center text-3xl">
+                        🚗
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-xl font-black" id="displayDriverName">Luca</p>
+                        <p class="text-sm opacity-80" id="displayVehicle">Electric Vehicle</p>
+                        <p class="text-sm opacity-80">⭐ 4.9 rating</p>
+                    </div>
+                    <a id="callDriverBtn" href="tel:+16475550100" 
+                        class="bg-white bg-opacity-20 rounded-xl px-4 py-3 text-center hover:bg-opacity-30 transition-all">
+                        <div class="text-2xl mb-1">📞</div>
+                        <div class="text-xs font-bold">Call</div>
+                    </a>
+                </div>
+                <div class="mt-4 pt-4 border-t border-white border-opacity-20">
+                    <p class="text-xs opacity-70 mb-1">Driver Phone</p>
+                    <p class="font-bold" id="displayDriverPhone">647-555-0100</p>
+                </div>
+            </div>
+
+            <!-- SORSE Contact -->
+            <div class="bg-white rounded-2xl shadow-md p-5 mb-4">
+                <h3 class="font-bold text-gray-700 mb-3">SORSE Support</h3>
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="font-semibold text-gray-800">Luca — SORSE Courier</p>
+                        <p class="text-sm text-gray-500">info@sorse.ca</p>
+                    </div>
+                    <a href="tel:+16475550100" class="text-white px-4 py-2 rounded-xl font-bold text-sm" style="background: var(--sorse-orange);">
+                        📞 Call SORSE
+                    </a>
+                </div>
+            </div>
+
+            <!-- Delivery Timeline -->
+            <div class="bg-white rounded-2xl shadow-md p-5 mb-4">
+                <h3 class="font-bold text-gray-700 mb-4">Delivery Timeline</h3>
+                <div id="timeline" class="space-y-0">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- Proof of Delivery (shown when delivered) -->
+            <div id="podSection" class="hidden bg-white rounded-2xl shadow-md p-5 mb-4">
+                <h3 class="font-bold text-gray-700 mb-3">✅ Proof of Delivery</h3>
+                <div id="podContent"></div>
+            </div>
+
+            <!-- Back button -->
+            <div class="text-center mt-4">
+                <button onclick="resetTracking()" class="text-sm underline" style="color: var(--sorse-orange)">Track another order</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    let trackingMap = null;
+
+    const DEMO_ORDER = {
+        trackNum: 'SRS-20260322-001',
+        from: '2547 Rugby Rd, Mississauga ON',
+        to: '123 King St W, Toronto ON',
+        service: 'Rush — 90 min',
+        date: 'Mar 22, 2026',
+        status: 'in_transit',
+        eta: '2:45 PM',
+        etaNote: 'Approximately 18 minutes away',
+        driver: {
+            name: 'Luca',
+            phone: '647-555-0100',
+            vehicle: 'Tesla Model 3 — Electric'
+        },
+        timeline: [
+            { label: 'Order Confirmed', time: '1:55 PM', done: true },
+            { label: 'Driver Assigned', time: '1:57 PM', done: true },
+            { label: 'Picked Up', time: '2:10 PM', done: true },
+            { label: 'In Transit', time: '2:12 PM', done: true, active: true },
+            { label: 'Delivered', time: 'Estimated 2:45 PM', done: false }
+        ],
+        fromCoords: [43.5890, -79.6441],
+        toCoords: [43.6479, -79.3840]
+    };
+
+    function loadDemo() {
+        document.getElementById('trackInput').value = 'SRS-20260322-001';
+        renderTracking(DEMO_ORDER);
+    }
+
+    function loadTracking() {
+        const val = document.getElementById('trackInput').value.trim();
+        if (!val) { alert('Please enter a tracking number or phone number.'); return; }
+        // In production this would call an API. For now, show demo if matches, else show "not found"
+        if (val.toUpperCase() === 'SRS-20260322-001' || val === '647-555-0100') {
+            renderTracking(DEMO_ORDER);
+        } else {
+            alert('No order found for "' + val + '".\n\nTip: Try the demo number: SRS-20260322-001');
+        }
+    }
+
+    function renderTracking(order) {
+        document.getElementById('searchSection').classList.add('hidden');
+        document.getElementById('trackingResult').classList.remove('hidden');
+
+        document.getElementById('displayTrackNum').textContent = order.trackNum;
+        document.getElementById('displayFrom').textContent = order.from;
+        document.getElementById('displayTo').textContent = order.to;
+        document.getElementById('displayService').textContent = order.service;
+        document.getElementById('displayDate').textContent = order.date;
+        document.getElementById('displayETA').textContent = order.eta;
+        document.getElementById('displayETANote').textContent = order.etaNote;
+        document.getElementById('displayDriverName').textContent = order.driver.name;
+        document.getElementById('displayDriverPhone').textContent = order.driver.phone;
+        document.getElementById('displayVehicle').textContent = order.driver.vehicle;
+        document.getElementById('callDriverBtn').href = 'tel:' + order.driver.phone.replace(/[^0-9+]/g,'');
+
+        // Status badge
+        const badge = document.getElementById('statusBadge');
+        const statusColors = {
+            confirmed: '#3B82F6', assigned: '#8B5CF6', picked_up: '#F97316',
+            in_transit: '#E67928', delivered: '#10B981', failed: '#EF4444'
+        };
+        const statusLabels = {
+            confirmed: 'Confirmed', assigned: 'Driver Assigned', picked_up: 'Picked Up',
+            in_transit: 'In Transit', delivered: 'Delivered', failed: 'Delivery Attempted'
+        };
+        badge.style.background = statusColors[order.status] || '#6B7280';
+        badge.textContent = statusLabels[order.status] || order.status;
+
+        // Timeline
+        const tl = document.getElementById('timeline');
+        tl.innerHTML = order.timeline.map((step, i) => `
+            <div class="flex items-start gap-4 pb-4">
+                <div class="flex flex-col items-center">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0
+                        ${step.done ? 'bg-green-500 text-white' : step.active ? 'bg-orange-400 text-white pulse' : 'bg-gray-200 text-gray-400'}">
+                        ${step.done && !step.active ? '✓' : i + 1}
+                    </div>
+                    ${i < order.timeline.length - 1 ? `<div class="step-line ${step.done ? 'done' : ''}"></div>` : ''}
+                </div>
+                <div class="pt-1">
+                    <p class="font-semibold text-gray-800 text-sm ${step.active ? 'text-orange-600' : ''}">${step.label}</p>
+                    <p class="text-xs text-gray-400">${step.time}</p>
+                </div>
+            </div>
+        `).join('');
+
+        // Proof of delivery
+        if (order.status === 'delivered' && order.pod) {
+            document.getElementById('podSection').classList.remove('hidden');
+            const pod = order.pod;
+            document.getElementById('podContent').innerHTML = `
+                <div class="space-y-3">
+                    ${pod.photo ? `<img src="${pod.photo}" class="w-full rounded-xl" alt="Proof of delivery photo">` : ''}
+                    ${pod.recipient ? `<p class="text-sm text-gray-600">Received by: <strong>${pod.recipient}</strong></p>` : ''}
+                    <p class="text-sm text-gray-500">Delivered at ${pod.time}</p>
+                </div>
+            `;
+        }
+
+        // Map
+        setTimeout(() => initTrackingMap(order), 100);
+    }
+
+    function initTrackingMap(order) {
+        if (trackingMap) { trackingMap.remove(); trackingMap = null; }
+        const mapEl = document.getElementById('trackingMap');
+        const midLat = (order.fromCoords[0] + order.toCoords[0]) / 2;
+        const midLng = (order.fromCoords[1] + order.toCoords[1]) / 2;
+        trackingMap = L.map(mapEl).setView([midLat, midLng], 11);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(trackingMap);
+
+        // Home/pickup marker
+        const pickupIcon = L.divIcon({
+            html: '<div style="background:#1E3A5F;color:white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);">🏠</div>',
+            className: '', iconSize: [32, 32], iconAnchor: [16, 16]
+        });
+        const deliveryIcon = L.divIcon({
+            html: '<div style="background:#E67928;color:white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);">📍</div>',
+            className: '', iconSize: [32, 32], iconAnchor: [16, 16]
+        });
+        const driverIcon = L.divIcon({
+            html: '<div style="background:#10B981;color:white;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4);" class="pulse">🚗</div>',
+            className: '', iconSize: [36, 36], iconAnchor: [18, 18]
+        });
+
+        L.marker(order.fromCoords, {icon: pickupIcon}).addTo(trackingMap)
+            .bindPopup('<b>Pickup</b><br>' + order.from);
+        L.marker(order.toCoords, {icon: deliveryIcon}).addTo(trackingMap)
+            .bindPopup('<b>Delivery</b><br>' + order.to);
+
+        // Simulated driver position (between pickup and delivery)
+        const driverLat = order.fromCoords[0] + (order.toCoords[0] - order.fromCoords[0]) * 0.65;
+        const driverLng = order.fromCoords[1] + (order.toCoords[1] - order.fromCoords[1]) * 0.65;
+        L.marker([driverLat, driverLng], {icon: driverIcon}).addTo(trackingMap)
+            .bindPopup('<b>Driver: ' + order.driver.name + '</b><br>In Transit').openPopup();
+
+        // Route line
+        L.polyline([order.fromCoords, [driverLat, driverLng], order.toCoords], {
+            color: '#E67928', weight: 4, opacity: 0.8, dashArray: '8 4'
+        }).addTo(trackingMap);
+
+        trackingMap.fitBounds([order.fromCoords, order.toCoords], {padding: [30, 30]});
+    }
+
+    function resetTracking() {
+        document.getElementById('searchSection').classList.remove('hidden');
+        document.getElementById('trackingResult').classList.add('hidden');
+        document.getElementById('trackInput').value = '';
+        if (trackingMap) { trackingMap.remove(); trackingMap = null; }
+    }
+</script>
+</body>
+</html>

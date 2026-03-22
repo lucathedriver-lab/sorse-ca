@@ -409,6 +409,60 @@
         <div class="modal-sheet" id="stopDetailContent"></div>
     </div>
 
+    <!-- Proof of Delivery Modal -->
+    <div id="podModal" class="modal-overlay hidden">
+        <div class="modal-sheet" style="max-height:95vh;">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-white">📸 Proof of Delivery</h3>
+                <button onclick="closePodModal()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+            </div>
+            <p class="text-slate-400 text-sm mb-4">Take a photo of the delivered parcel <strong class="text-white">or</strong> enter the name of the person who received it.</p>
+
+            <!-- Camera section -->
+            <div class="mb-4">
+                <label class="block text-xs text-slate-400 mb-2 uppercase font-semibold">📷 Photo Proof</label>
+                <div id="cameraPreview" class="hidden mb-3">
+                    <img id="podPhotoPreview" src="" alt="Delivery photo" class="w-full rounded-xl border-2 border-green-500" style="max-height:220px;object-fit:cover;">
+                    <button onclick="clearPodPhoto()" class="mt-2 text-xs text-red-400 underline">Remove photo</button>
+                </div>
+                <div id="cameraButtons" class="grid grid-cols-2 gap-3">
+                    <label for="podCameraInput" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm text-center cursor-pointer">
+                        📷 Take Photo
+                    </label>
+                    <label for="podGalleryInput" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-xl text-sm text-center cursor-pointer">
+                        🖼️ From Gallery
+                    </label>
+                </div>
+                <input type="file" id="podCameraInput" accept="image/*" capture="environment" class="hidden" onchange="handlePodPhoto(this)">
+                <input type="file" id="podGalleryInput" accept="image/*" class="hidden" onchange="handlePodPhoto(this)">
+            </div>
+
+            <!-- Divider -->
+            <div class="flex items-center gap-3 my-4">
+                <div class="flex-1 h-px bg-slate-600"></div>
+                <span class="text-slate-500 text-xs uppercase font-semibold">or</span>
+                <div class="flex-1 h-px bg-slate-600"></div>
+            </div>
+
+            <!-- Recipient name -->
+            <div class="mb-5">
+                <label class="block text-xs text-slate-400 mb-2 uppercase font-semibold">✍️ Received By (Name)</label>
+                <input type="text" id="podRecipientName" placeholder="e.g. John Smith, Receptionist" class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-white text-sm focus:border-orange-500 outline-none">
+            </div>
+
+            <!-- Note -->
+            <div class="mb-5">
+                <label class="block text-xs text-slate-400 mb-2 uppercase font-semibold">📝 Delivery Note (optional)</label>
+                <input type="text" id="podNote" placeholder="e.g. Left at front door, signed by receptionist" class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-white text-sm focus:border-orange-500 outline-none">
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="skipPod()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-xl text-sm">Skip</button>
+                <button onclick="confirmPod()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl text-sm">✅ Confirm Delivery</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast -->
     <div id="toast" class="fixed top-20 left-1/2 -translate-x-1/2 bg-green-600 text-white font-bold px-5 py-3 rounded-xl text-sm shadow-xl z-[2000] hidden">✅</div>
 
@@ -857,12 +911,78 @@
         return `https://www.google.com/maps/dir/?api=1&destination=${enc}`;
     }
 
+    let podTargetIndex = null;
+    let podPhotoData = null;
+
     function markDelivered() {
         if (activeStopIndex === null) return;
-        stops[activeStopIndex].status = 'delivered';
-        stops[activeStopIndex].completedAt = new Date().toISOString();
-        showToast('✅ Delivered!', 'green');
-        advanceToNextStop(); saveStops(); renderStops(); renderMap(); updateStats();
+        openPodModal(activeStopIndex);
+    }
+
+    function openPodModal(index) {
+        podTargetIndex = index;
+        podPhotoData = null;
+        document.getElementById('podPhotoPreview').src = '';
+        document.getElementById('cameraPreview').classList.add('hidden');
+        document.getElementById('cameraButtons').classList.remove('hidden');
+        document.getElementById('podRecipientName').value = '';
+        document.getElementById('podNote').value = '';
+        document.getElementById('podCameraInput').value = '';
+        document.getElementById('podGalleryInput').value = '';
+        document.getElementById('podModal').classList.remove('hidden');
+    }
+
+    function closePodModal() {
+        document.getElementById('podModal').classList.add('hidden');
+        podTargetIndex = null;
+        podPhotoData = null;
+    }
+
+    function handlePodPhoto(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            podPhotoData = e.target.result;
+            document.getElementById('podPhotoPreview').src = podPhotoData;
+            document.getElementById('cameraPreview').classList.remove('hidden');
+            document.getElementById('cameraButtons').classList.add('hidden');
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function clearPodPhoto() {
+        podPhotoData = null;
+        document.getElementById('podPhotoPreview').src = '';
+        document.getElementById('cameraPreview').classList.add('hidden');
+        document.getElementById('cameraButtons').classList.remove('hidden');
+        document.getElementById('podCameraInput').value = '';
+        document.getElementById('podGalleryInput').value = '';
+    }
+
+    function confirmPod() {
+        const recipient = document.getElementById('podRecipientName').value.trim();
+        const note = document.getElementById('podNote').value.trim();
+        if (!podPhotoData && !recipient) {
+            showToast('📸 Please take a photo or enter recipient name', 'yellow');
+            return;
+        }
+        completePodDelivery(podTargetIndex, { photo: podPhotoData, recipient, note });
+        closePodModal();
+    }
+
+    function skipPod() {
+        completePodDelivery(podTargetIndex, null);
+        closePodModal();
+    }
+
+    function completePodDelivery(index, pod) {
+        stops[index].status = 'delivered';
+        stops[index].completedAt = new Date().toISOString();
+        if (pod) stops[index].pod = pod;
+        showToast('✅ Delivered' + (pod && pod.recipient ? ' — signed by ' + pod.recipient : pod && pod.photo ? ' — photo saved' : '!'), 'green');
+        if (index === activeStopIndex) advanceToNextStop();
+        saveStops(); renderStops(); renderMap(); updateStats();
     }
 
     function markFailed() {

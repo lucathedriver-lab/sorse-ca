@@ -909,7 +909,10 @@
         }
 
         function detectZoneAndPrice(lat, lon) {
-            const distKm = haversineKm(SORSE_BASE_LAT, SORSE_BASE_LON, lat, lon);
+            // Use pickup (sender) coords if available, otherwise fall back to SORSE base
+            const senderLat = parseFloat(document.getElementById('senderLat').value) || SORSE_BASE_LAT;
+            const senderLon = parseFloat(document.getElementById('senderLon').value) || SORSE_BASE_LON;
+            const distKm = haversineKm(senderLat, senderLon, lat, lon);
             let zone, zoneLabel, zoneColor;
 
             if (distKm <= 25) {
@@ -948,7 +951,9 @@
 
             document.getElementById('deliveryZone').value = zone;
             document.getElementById('zoneDetectedLabel').textContent = zoneLabel;
-            document.getElementById('zoneDetectedDistance').textContent = `Approx. ${Math.round(distKm)} km from SORSE base (Mississauga)`;
+            const senderLat2 = parseFloat(document.getElementById('senderLat').value);
+            const distLabel = senderLat2 ? `Approx. ${Math.round(distKm)} km from pickup address` : `Approx. ${Math.round(distKm)} km from pickup address`;
+            document.getElementById('zoneDetectedDistance').textContent = distLabel;
             document.getElementById('zoneDetectedDisplay').classList.remove('hidden');
 
             calculatePrice();
