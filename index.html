@@ -6,12 +6,18 @@
     <title>SORSE - Same-Day Courier & Last-Mile Delivery | Toronto & GTA</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .sorse-blue { color: #3B82F6; }
-        .sorse-orange { color: #F97316; }
-        .bg-sorse-gradient { background: linear-gradient(135deg, #3B82F6, #F97316); }
-        .hero-gradient { background: linear-gradient(135deg, #EFF6FF, #FFF7ED); }
+        :root {
+            --sorse-orange: #E67928;
+            --sorse-orange-dark: #DC6020;
+            --sorse-orange-light: #F5A05A;
+            --sorse-blue: #1E3A5F;
+        }
+        .sorse-blue { color: var(--sorse-blue); }
+        .sorse-orange { color: var(--sorse-orange); }
+        .bg-sorse-gradient { background: linear-gradient(135deg, var(--sorse-blue), var(--sorse-orange)); }
+        .hero-gradient { background: linear-gradient(160deg, #FFF8F2 0%, #FDECD8 50%, #F5D5B0 100%); }
         .welcome-text {
-            background: linear-gradient(135deg, #3B82F6, #F97316);
+            background: linear-gradient(135deg, var(--sorse-blue), var(--sorse-orange));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -24,33 +30,34 @@
         }
         .service-card:hover {
             transform: translateY(-4px);
-            box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+            box-shadow: 0 12px 30px rgba(230,121,40,0.18);
         }
         .stat-badge {
-            background: linear-gradient(135deg, #EFF6FF, #FFF7ED);
-            border: 1px solid #E5E7EB;
+            background: linear-gradient(135deg, #FFF8F2, #FDECD8);
+            border: 1px solid #F5D5B0;
         }
+        body { background-color: #FFF8F2; }
     </style>
 </head>
-<body class="bg-gray-50">
+    <body style="background-color: #FFF8F2;">
 
     <!-- Header -->
-    <header class="bg-white shadow-sm sticky top-0 z-40">
+    <header class="sticky top-0 z-40" style="background: linear-gradient(90deg, #1E3A5F, #E67928); box-shadow: 0 2px 12px rgba(230,121,40,0.3);">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div class="flex justify-between items-center">
-                <img src="sorse_logo_3_enhanced.png" alt="SORSE Logo" class="h-16 w-auto">
+                <img src="sorse_logo_3_enhanced.png" alt="SORSE Logo" class="h-16 w-auto" style="filter: brightness(0) invert(1);">
                 <nav class="hidden md:flex space-x-8">
-                    <a href="index.html" class="text-gray-700 hover:text-blue-600 font-medium">Home</a>
-                    <a href="#services" class="text-gray-700 hover:text-blue-600 font-medium">Services</a>
-                    <a href="#pricing" class="text-gray-700 hover:text-blue-600 font-medium">Pricing</a>
-                    <a href="#about" class="text-gray-700 hover:text-blue-600 font-medium">About</a>
-                    <a href="admin-login.html" class="text-gray-700 hover:text-blue-600 font-medium">Admin</a>
+                    <a href="index.html" class="text-white hover:text-orange-200 font-medium">Home</a>
+                    <a href="#services" class="text-white hover:text-orange-200 font-medium">Services</a>
+                    <a href="#pricing" class="text-white hover:text-orange-200 font-medium">Pricing</a>
+                    <a href="#about" class="text-white hover:text-orange-200 font-medium">About</a>
+                    <a href="admin-login.html" class="text-white hover:text-orange-200 font-medium">Admin</a>
                 </nav>
                 <div class="flex gap-3">
-                    <button onclick="showSignIn()" class="bg-sorse-gradient text-white px-5 py-2 rounded-lg hover:opacity-90 transition-opacity font-medium">
+                    <button onclick="showSignIn()" class="text-white px-5 py-2 rounded-lg hover:opacity-90 transition-opacity font-medium" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4);">
                         Sign In
                     </button>
-                    <button onclick="showCreateAccount()" class="border-2 border-orange-500 text-orange-600 px-5 py-2 rounded-lg hover:bg-orange-50 transition-colors font-medium hidden md:block">
+                    <button onclick="showCreateAccount()" class="text-white px-5 py-2 rounded-lg font-medium hidden md:block" style="background: var(--sorse-orange-dark); border: 2px solid white;">
                         Get Started
                     </button>
                 </div>
@@ -61,8 +68,36 @@
     <!-- Main Landing Page -->
     <div id="landingPage">
 
-        <!-- Hero Section -->
-        <section class="hero-gradient py-20 px-4 sm:px-6 lg:px-8">
+        <!-- Farm Hero Image Section -->
+        <section class="relative overflow-hidden" style="background: linear-gradient(160deg, #FFF8F2 0%, #FDECD8 50%, #F5D5B0 100%)">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+                <div class="grid lg:grid-cols-2 gap-12 items-center">
+                    <div class="text-center lg:text-left">
+                        <h1 class="text-5xl md:text-6xl font-black mb-4 welcome-text">Same-Day Delivery</h1>
+                        <p class="text-2xl font-bold mb-4" style="color: var(--sorse-blue)">From Farms to Businesses to Your Door</p>
+                        <p class="text-lg text-gray-600 mb-8 max-w-xl">SORSE Courier connects Southern Ontario farms, GTA businesses, and local communities with fast, reliable same-day delivery. We move what matters.</p>
+                        <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                            <button onclick="showCreateAccount()" class="bg-sorse-gradient text-white px-10 py-4 rounded-xl text-lg font-bold hover:opacity-90 transition-opacity shadow-lg">Get Started</button>
+                            <a href="label.html" class="border-2 text-center px-10 py-4 rounded-xl text-lg font-bold hover:opacity-80 transition-colors" style="border-color: var(--sorse-orange); color: var(--sorse-orange);">Get a Quote</a>
+                        </div>
+                    </div>
+                    <div class="relative">
+                        <img src="sorse_farm_hero.png" alt="SORSE Courier Farm to City Delivery" class="w-full max-w-sm mx-auto rounded-3xl shadow-2xl" style="border: 4px solid var(--sorse-orange);">
+                        <div class="absolute -bottom-4 -left-4 bg-white rounded-2xl shadow-xl px-5 py-3 border-l-4" style="border-color: var(--sorse-orange);">
+                            <div class="font-black text-lg" style="color: var(--sorse-orange)">Zone 1 from $39</div>
+                            <div class="text-sm text-gray-500">Rush — 90 min delivery</div>
+                        </div>
+                        <div class="absolute -top-4 -right-4 bg-white rounded-2xl shadow-xl px-5 py-3 border-l-4" style="border-color: var(--sorse-blue);">
+                            <div class="font-black text-lg" style="color: var(--sorse-blue)">8 Delivery Zones</div>
+                            <div class="text-sm text-gray-500">Up to 200 km coverage</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    <!-- Hero Section -->
+        <section class="hero-gradient py-16 px-4 sm:px-6 lg:px-8">
             <div class="max-w-7xl mx-auto text-center">
                 <h1 class="text-6xl md:text-7xl font-black mb-6 welcome-text">
                     Welcome to
@@ -114,7 +149,7 @@
         </section>
 
         <!-- Services Section -->
-        <section id="services" class="py-20 bg-white">
+        <section id="services" class="py-20" style="background-color: #FFF8F2;">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="text-center mb-16">
                     <h2 class="text-4xl font-black mb-4">
@@ -210,7 +245,7 @@
         </section>
 
         <!-- Why SORSE Section -->
-        <section class="py-20 bg-gray-50">
+        <section class="py-20" style="background: linear-gradient(160deg, #FDECD8 0%, #FFF8F2 100%)">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="text-center mb-16">
                     <h2 class="text-4xl font-black mb-4">
@@ -266,7 +301,7 @@
         </section>
 
         <!-- Pricing Section -->
-        <section id="pricing" class="py-20 bg-white">
+        <section id="pricing" class="py-20" style="background-color: #FFF8F2;">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="text-center mb-16">
                     <h2 class="text-4xl font-black mb-4">
@@ -537,7 +572,7 @@
         </section>
 
         <!-- Encore Canada Partnership -->
-        <section class="py-20 bg-sorse-gradient text-white">
+        <section class="py-20 text-white" style="background: linear-gradient(135deg, var(--sorse-blue), var(--sorse-orange-dark))">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="grid md:grid-cols-2 gap-12 items-center">
                     <div>
@@ -618,7 +653,7 @@
         </section>
 
         <!-- Service Areas -->
-        <section id="about" class="py-20 bg-white">
+        <section id="about" class="py-20" style="background: linear-gradient(160deg, #FDECD8 0%, #FFF8F2 100%)">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
                 <h2 class="text-4xl font-black mb-4">
                     Serving Toronto & the GTA
@@ -627,22 +662,22 @@
                     Our courier network covers the entire Greater Toronto Area with fast, reliable same-day delivery.
                 </p>
                 <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
-                    <div class="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+                    <div class="bg-white rounded-2xl p-6 border" style="border-color: #F5D5B0">
                         <div class="text-2xl mb-2">🏙️</div>
                         <h3 class="font-bold text-lg mb-1">Downtown Toronto</h3>
                         <p class="text-gray-500 text-sm">Financial District, Entertainment District, King West</p>
                     </div>
-                    <div class="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+                    <div class="bg-white rounded-2xl p-6 border" style="border-color: #F5D5B0">
                         <div class="text-2xl mb-2">🌆</div>
                         <h3 class="font-bold text-lg mb-1">North York</h3>
                         <p class="text-gray-500 text-sm">Yonge & Eglinton, North York Centre, Scarborough</p>
                     </div>
-                    <div class="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+                    <div class="bg-white rounded-2xl p-6 border" style="border-color: #F5D5B0">
                         <div class="text-2xl mb-2">🏢</div>
                         <h3 class="font-bold text-lg mb-1">Mississauga</h3>
                         <p class="text-gray-500 text-sm">Square One, Port Credit, Meadowvale</p>
                     </div>
-                    <div class="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+                    <div class="bg-white rounded-2xl p-6 border" style="border-color: #F5D5B0">
                         <div class="text-2xl mb-2">🌇</div>
                         <h3 class="font-bold text-lg mb-1">Markham & Vaughan</h3>
                         <p class="text-gray-500 text-sm">Unionville, Thornhill, Woodbridge</p>
@@ -652,7 +687,7 @@
         </section>
 
         <!-- Footer -->
-        <footer class="bg-gray-900 text-white py-14">
+        <footer class="text-white py-14" style="background: linear-gradient(135deg, #1A1A2E, #1E3A5F)">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="grid md:grid-cols-4 gap-8 mb-10">
                     <div class="md:col-span-1">
