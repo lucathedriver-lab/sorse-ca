@@ -364,7 +364,7 @@
                             <span class="text-2xl font-black text-white" id="priceTotal">—</span>
                         </div>
                         <div class="flex justify-between items-center mt-1">
-                            <span class="text-xs text-yellow-400">₿ Bitcoin (5% off)</span>
+                            <span class="text-xs text-yellow-400">₿ Bitcoin (10% off)</span>
                             <span class="text-lg font-bold text-yellow-400" id="priceBitcoin">—</span>
                         </div>
                     </div>
@@ -715,16 +715,25 @@
             const recipientName = document.getElementById('recipientName').value;
             const recipientAddress = document.getElementById('recipientAddress').value;
             const recipientCity = document.getElementById('recipientCity').value;
+            const recipientProvince = document.getElementById('recipientProvince').value || '';
+            const recipientPostal = document.getElementById('recipientPostal').value || '';
+            const recipientPhone = document.getElementById('recipientPhone').value || '';
+            const senderName = document.getElementById('senderName').value || 'SORSE Courier';
+            const senderAddress = document.getElementById('senderAddress').value || '';
+            const senderCity = document.getElementById('senderCity').value || '';
+            const senderProvince = document.getElementById('senderProvince').value || '';
+            const senderPostal = document.getElementById('senderPostal').value || '';
+            const pieces = document.getElementById('pieces').value || '1';
+            const weight = document.getElementById('weight').value || '';
+            const instructions = document.getElementById('instructions').value || '—';
             const orderNum = getNextOrderNumber();
             const dateStr = formatDate(new Date());
+            const dateShort = formatDateShort(new Date());
 
             if (!recipientName || !recipientAddress) {
                 alert('Please fill in at least the Recipient Name and Delivery Address before printing.');
                 return;
             }
-
-            // First update the label preview with all current form data
-            updateLabel();
 
             // Save to history
             const order = {
@@ -738,17 +747,129 @@
             orderHistory.unshift(order);
             if (orderHistory.length > 50) orderHistory.pop();
             localStorage.setItem('sorseOrderHistory', JSON.stringify(orderHistory));
-
-            // Increment order number for next order
             incrementOrderNumber();
-
-            // Render history
             renderHistory();
 
-            // Small delay to ensure label is fully rendered before printing
-            setTimeout(function() {
-                window.print();
-            }, 300);
+            // Priority badge style
+            const priorityStyles = {
+                'RUSH': 'background:#000;color:#fff;border:2px solid #000;',
+                'PRIORITY': 'background:#000;color:#fff;border:2px solid #000;',
+                'SAMEDAY B2B': 'background:#000;color:#fff;border:2px solid #000;',
+                'SAMEDAY B2C': 'background:#fff;color:#000;border:2px solid #000;',
+                'EVENING EXPRESS': 'background:#3730a3;color:#fff;border:2px solid #3730a3;'
+            };
+            const badgeStyle = priorityStyles[priority] || priorityStyles['SAMEDAY B2B'];
+
+            // Build barcode SVG via JsBarcode into a temp element
+            const tempSvg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+            tempSvg.setAttribute('id','tempBarcode');
+            document.body.appendChild(tempSvg);
+            try { JsBarcode('#tempBarcode', `SORSE-${orderNum}`, {format:'CODE128',width:2,height:50,displayValue:false,margin:4,lineColor:'#000'}); } catch(e){}
+            const barcodeSVG = tempSvg.outerHTML;
+            document.body.removeChild(tempSvg);
+
+            // Build QR code as data URL via canvas
+            let qrDataUrl = '';
+            try {
+                const qrCanvas = document.createElement('canvas');
+                qrCanvas.width = 56; qrCanvas.height = 56;
+                new QRCode(qrCanvas, {text:`https://sorse.ca/track/${orderNum}`,width:56,height:56,colorDark:'#000000',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+                setTimeout(function(){
+                    try { qrDataUrl = qrCanvas.toDataURL('image/png'); } catch(e){}
+                }, 100);
+            } catch(e){}
+
+            // Get logo as base64
+            const logoImg = document.querySelector('#label-print-area img');
+            const logoSrc = logoImg ? logoImg.src : 'sorse_logo_3_enhanced.png';
+
+            // Location info
+            const locationInfo = buildLocationInfo();
+
+            // Build the print HTML
+            const senderCityLine = [senderCity, senderProvince, senderPostal].filter(Boolean).join(', ');
+            const recipientCityLine = [recipientCity, recipientProvince].filter(Boolean).join(', ');
+
+            const printHTML = `<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<title>SORSE Label — ${orderNum}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Courier+Prime:wght@400;700&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Inter',sans-serif; background:#fff; }
+  @page { size:4in 6in; margin:0; }
+  .label { width:4in; min-height:6in; background:#fff; border:2px solid #000; font-size:10pt; }
+  .label-header { background:#fff; padding:8px 12px; display:flex; align-items:center; justify-content:space-between; border-bottom:2px solid #000; }
+  .badge { font-size:10pt; font-weight:900; letter-spacing:1px; padding:4px 10px; text-transform:uppercase; ${badgeStyle} }
+  .section { border-bottom:1.5px solid #000; padding:6px 10px; }
+  .section-title { font-size:7pt; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#000; margin-bottom:2px; }
+  .address { font-size:11pt; font-weight:700; line-height:1.4; }
+  .barcode-area { padding:8px 10px; text-align:center; border-bottom:1.5px solid #000; }
+  .order-num { font-family:'Courier Prime',monospace; font-size:26pt; font-weight:700; letter-spacing:4px; text-align:center; margin-top:2px; color:#000; }
+  .service-box { border:2px solid #000; padding:4px 8px; font-weight:900; font-size:10pt; text-transform:uppercase; color:#000; background:#fff; display:inline-block; }
+  .footer { background:#fff; padding:6px 10px; display:flex; justify-content:space-between; align-items:center; font-size:8pt; border-top:1.5px solid #000; }
+  .qr-row { border-bottom:1.5px solid #000; padding:6px 10px; display:flex; gap:8px; align-items:flex-start; }
+  .no-print-btn { position:fixed; top:10px; right:10px; background:#e67928; color:#fff; border:none; padding:10px 20px; font-size:14pt; font-weight:700; cursor:pointer; border-radius:6px; }
+  @media print { .no-print-btn { display:none; } }
+</style>
+</head><body>
+<button class="no-print-btn" onclick="window.print()">🖨️ PRINT</button>
+<div class="label">
+  <div class="label-header">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <img src="${logoSrc}" alt="SORSE" style="height:36px;filter:grayscale(100%) contrast(200%);">
+      <div style="font-size:6pt;color:#000;letter-spacing:1px;line-height:1.5;">SAME-DAY COURIER<br>sorse.ca</div>
+    </div>
+    <div class="badge">${priority}</div>
+  </div>
+  <div style="background:#f5f5f5;border-bottom:1.5px solid #000;padding:4px 10px;display:flex;justify-content:space-between;align-items:center;">
+    <div class="service-box">${serviceType}</div>
+    <div style="font-size:8pt;color:#555;">Pieces: <strong>${pieces}</strong> &nbsp;|&nbsp; Wt: <strong>${weight ? weight+' lbs' : '—'}</strong></div>
+    <div style="font-size:8pt;font-weight:700;color:#000;">${dateShort}</div>
+  </div>
+  <div class="section">
+    <div class="section-title">FROM:</div>
+    <div class="address">${senderName}</div>
+    <div style="font-size:9pt;color:#333;">${senderAddress}</div>
+    <div style="font-size:9pt;color:#333;">${senderCityLine}</div>
+  </div>
+  <div style="border-bottom:2.5px solid #000;padding:8px 10px;background:#fff;">
+    <div class="section-title">SHIP TO:</div>
+    <div style="font-size:15pt;font-weight:900;line-height:1.3;">${recipientName}</div>
+    <div style="font-size:11pt;font-weight:700;color:#000;">${recipientAddress}</div>
+    <div style="font-size:11pt;font-weight:700;color:#000;">${recipientCityLine}</div>
+    <div style="font-size:13pt;font-weight:900;color:#000;letter-spacing:2px;">${recipientPostal.toUpperCase()}</div>
+    ${recipientPhone ? `<div style="font-size:9pt;color:#333;margin-top:2px;">📞 ${recipientPhone}</div>` : ''}
+    ${locationInfo ? `<div style="font-size:8pt;font-weight:700;color:#000;margin-top:3px;border-top:1px solid #ccc;padding-top:3px;">${locationInfo}</div>` : ''}
+  </div>
+  <div class="barcode-area">
+    ${barcodeSVG}
+    <div class="order-num">${orderNum}</div>
+  </div>
+  <div class="qr-row">
+    <div style="flex-shrink:0;width:56px;height:56px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:7pt;color:#666;">QR</div>
+    <div style="flex:1;">
+      <div class="section-title">Special Instructions:</div>
+      <div style="font-size:8.5pt;color:#333;line-height:1.4;">${instructions}</div>
+    </div>
+  </div>
+  <div class="footer">
+    <div><div style="font-weight:900;color:#000;font-size:9pt;">sorse.ca</div><div style="color:#333;font-size:7pt;">Same-Day Courier</div></div>
+    <div style="text-align:center;"><div style="font-size:7pt;color:#555;">Proof of delivery at</div><div style="font-size:7pt;font-weight:700;color:#000;">sorse.ca/track</div></div>
+    <div style="text-align:right;"><div style="font-size:7pt;color:#555;">Powered by</div><div style="font-size:8pt;font-weight:900;color:#000;">SORSE</div></div>
+  </div>
+</div>
+</body></html>`;
+
+            // Open print window
+            const printWin = window.open('', '_blank', 'width=500,height=750');
+            if (!printWin) {
+                alert('Please allow popups for this site to enable print preview.');
+                return;
+            }
+            printWin.document.write(printHTML);
+            printWin.document.close();
         }
 
         // ===== NEW ORDER =====
@@ -1041,7 +1162,7 @@
             const minimum = 20;
             const total = Math.max(rawTotal, minimum);
             const minimumApplied = total > rawTotal;
-            const btcTotal = total * 0.95;
+            const btcTotal = total * 0.90;
 
             const zoneLabels = {
                 ZONE1: 'Zone 1 (0–25 km)',
