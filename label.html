@@ -16,12 +16,20 @@
             body * { visibility: hidden; }
             #label-print-area, #label-print-area * { visibility: visible; }
             #label-print-area {
-                position: fixed;
+                position: absolute;
                 top: 0; left: 0;
                 width: 4in;
-                height: 6in;
+                min-height: 6in;
                 margin: 0;
                 padding: 0;
+                border: 2px solid #000 !important;
+                box-shadow: none !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            @page {
+                size: 4in 6in;
+                margin: 0;
             }
             .no-print { display: none !important; }
         }
@@ -715,6 +723,9 @@
                 return;
             }
 
+            // First update the label preview with all current form data
+            updateLabel();
+
             // Save to history
             const order = {
                 orderNumber: orderNum,
@@ -734,8 +745,10 @@
             // Render history
             renderHistory();
 
-            // Print
-            window.print();
+            // Small delay to ensure label is fully rendered before printing
+            setTimeout(function() {
+                window.print();
+            }, 300);
         }
 
         // ===== NEW ORDER =====
